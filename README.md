@@ -1,8 +1,10 @@
 # Sipur Hozer - Employee Management System
 
-## 📚 About The Project
-Sipur Hozer is a second-hand bookstore chain with 20 branches across Israel that employs individuals with employment barriers. The organization emphasizes professional and social development for its employees.
-Currently, employees report their work hours and job roles on two separate, disconnected platforms. This project aims to bridge that gap by developing a unified, accessible mobile-first application that handles both time tracking and role reporting.
+## 📚 About Sipur Hozer
+Sipur Hozer is a second-hand bookstore chain with 20 branches across Israel that employs individuals with employment barriers. 
+The organization emphasizes professional and social development for its employees.
+Currently, employees report their work hours and job roles on two separate, disconnected platforms. 
+This project aims to bridge that gap by developing a unified, accessible mobile-first application that handles both time tracking and role reporting.
 
 ### Key Objectives
 
