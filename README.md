@@ -2,31 +2,36 @@
 
 ## 📚 About Sipur Hozer
 Sipur Hozer is a second-hand bookstore chain with 20 branches across Israel that employs individuals with employment barriers. 
+
 The organization emphasizes professional and social development for its employees.
+
 Currently, employees report their work hours and job roles on two separate, disconnected platforms. 
+
 This project aims to bridge that gap by developing a unified, accessible mobile-first application that handles both time tracking and role reporting.
 
 ### Key Objectives
 
-Unification: Combine entry/exit time recording and job role logging into one streamlined app.
-Accessibility: Designed specifically for users with diverse backgrounds and needs, featuring a high emphasis on simplicity and accessibility adjustments (e.g., text-to-speech, high contrast).
-Management: Provide managers with tools to approve shifts, manage locations, and export data for salary/reward calculations.
+- Unification: Combine entry/exit time recording and job role logging into one streamlined app.
 
-## 🚀 Features
+- Accessibility: Designed specifically for users with diverse backgrounds and needs, featuring a high emphasis on simplicity and accessibility adjustments (e.g., text-to-speech, high contrast).
+
+- Management: Provide managers with tools to approve shifts, manage locations, and export data for salary/reward calculations.
+
+## 🚀 Features 
 
 ### For Employees
-Unified Login: Simple authentication via phone number and password.
-Shift Tracking: Easy Clock-in/Clock-out interface.
-Location Awareness: Ability to report shifts inside the store or outside.
-Role Reporting: Mandatory selection of specific job roles performed during the shift.
-Accessibility: User interface optimized for ease of use and accessibility.
+- Unified Login: Simple authentication via phone number and password.
+- Shift Tracking: Easy Clock-in/Clock-out interface.
+- Location Awareness: Ability to report shifts inside the store or outside.
+- Role Reporting: Mandatory selection of specific job roles performed during the shift.
+- Accessibility: User interface optimized for ease of use and accessibility.
 
 ### For Managers
 
-Dashboard: Manage multiple store locations and user roles.
-Shift Verification: Review, approve, or reject submitted shifts.
-Reports: Export detailed reports for monthly salary and reward calculations.
-User Management: Add employees and assign permissions.
+- Dashboard: Manage multiple store locations and user roles.
+- Shift Verification: Review, approve, or reject submitted shifts.
+- Reports: Export detailed reports for monthly salary and reward calculations.
+- User Management: Add employees and assign permissions.
 
 ## 🛠️ Technology Stack
 
@@ -52,9 +57,9 @@ CI/CD: Automated pipelines for linting, testing, and building production images.
 ## 🏗️ Architecture Overview
 
 The system follows a microservices-oriented approach:
-Application (Client): Next.js frontend interacting with the API.
-API Server: Go/Gin server handling business logic, authentication, and shift management.
-Database: PostgreSQL instance storing sensitive user data, shifts, and roles.
+- Application (Client): Next.js frontend interacting with the API.
+- API Server: Go/Gin server handling business logic, authentication, and shift management.
+- Database: PostgreSQL instance storing sensitive user data, shifts, and roles.
 
 ## 💻 Getting Started
 
@@ -101,7 +106,3 @@ Noya De Levi
 Dor Chobotaro
 
 Instructor: Maroon Ayoub
- 
-## 📄 License
-
-Distributed under the MIT License. See LICENSE for more information.
