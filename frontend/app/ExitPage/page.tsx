@@ -1,8 +1,8 @@
 "use client";
-
+  
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Store, Tent } from 'lucide-react'; // אייקונים לחנות ושטח
+import { Store, Tent } from 'lucide-react';
 
 const BRAND_GREEN = '#446F41';
 const BG_CREAM = '#F3F6EB';
