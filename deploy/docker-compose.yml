@@ -1,0 +1,19 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # The Go Backend
+  api:
+    build: ../backend
+    ports:
+      - "8080:8080" # Maps localhost:8080 to container:8080
+    restart: always
+
+  # The Next.js Frontend
+  web:
+    build: ../frontend
+    ports:
+      - "3000:3000" # Maps localhost:3000 to container:3000
+    restart: always
+    environment:
+      - NODE_ENV=production
