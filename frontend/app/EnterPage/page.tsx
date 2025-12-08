@@ -1,4 +1,4 @@
-'use client'; // חובה ב-Next.js App Router לשימוש ב-useRouter
+'use client'; 
 
 import { useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';

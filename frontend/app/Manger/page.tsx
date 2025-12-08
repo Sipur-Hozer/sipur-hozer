@@ -9,7 +9,7 @@ const AdminPage = () => {
   return (
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex flex-col items-center p-4" dir="rtl">
       
-      {/* כותרת עליונה */}
+      
       <header className="w-full max-w-4xl flex justify-between items-center mb-10 mt-4">
         <div className="px-4 py-1 rounded-full text-white text-sm" style={{ backgroundColor: BRAND_GREEN }}>
             משתמש מנהל
