@@ -63,30 +63,35 @@ The system follows a microservices-oriented approach:
 
 ## 💻 Getting Started
 
+💻 Getting Started
 Prerequisites
+
 Docker and Docker Compose
-Optional (for local dev without Docker): Go 1.20+, Node.js 18+, PostgreSQL
 
-Installation & Running
-The easiest way to run the entire system is using Docker Compose.
+Make (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash).
 
-Clone the repository
+Installation & Running The easiest way to run the entire system is using the provided Makefile automation.
 
-git clone [https://github.com/your-username/sipur-hozer-project.git](https://github.com/your-username/sipur-hozer-project.git)
-cd sipur-hozer-project
+Clone the repository git clone https://github.com/your-username/sipur-hozer-project.git cd sipur-hozer-project
 
+Start the Application Use the make command to build the project and start the services in the background: make run
 
-Environment Variables
-Create a .env file in the root directory (based on .env.example) to configure database credentials and API keys.
+This will build the Docker images and start the containers.
 
-Run with Docker Compose
-This command will spin up the Frontend, Backend, and Database containers.
+It also runs the launch script (scripts/open_app.sh) automatically.
 
-docker-compose up --build
+Your terminal will remain free for use.
 
+Common Commands
+
+View Logs: If you need to debug or see server output, run: make logs
+
+Stop the App: When you are finished, run: make stop
 
 Access the Application
+
 Frontend: http://localhost:3000
+
 API: http://localhost:8080 (or your configured port)
 
 ## 👥 The Team
