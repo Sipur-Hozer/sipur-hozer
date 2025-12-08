@@ -19,8 +19,9 @@ const EnterPage = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           הפעולה בוצעה בהצלחה
         </h1>
+        {/* FIX: Replaced " with &quot; to satisfy the linter */}
         <p className="text-gray-600 dark:text-gray-400 mb-8">
-          לחץ על "אישור" כדי לחזור לדף הקודם.
+          לחץ על &quot;אישור&quot; כדי לחזור לדף הקודם.
         </p>
 
         <button
