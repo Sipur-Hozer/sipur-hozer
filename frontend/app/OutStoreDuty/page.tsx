@@ -52,7 +52,7 @@ const OutsideRolesPage = () => {
             </div>
           </div>
 
-          {/* שדה כתיבה דינמי */}
+    
           {selectedRole === 'other' && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="text-sm font-semibold text-gray-600 mr-1 mb-1 block">הזן תפקיד:</label>
@@ -67,7 +67,7 @@ const OutsideRolesPage = () => {
             </div>
           )}
 
-          {/* כפתור תמונה (לא פעיל) */}
+         
           <div className="pt-4 border-t border-gray-100">
             <button
               disabled

@@ -17,7 +17,7 @@ const LocationSelectPage = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-8">איפה אתה עובד היום?</h1>
 
         <div className="space-y-4">
-          {/* כפתור בתוך החנות */}
+          
           <button
             onClick={() => router.push('/InStoreDuty')} 
             className="w-full flex items-center justify-between p-6 rounded-lg border-2 border-transparent bg-gray-50 hover:bg-green-50 hover:border-[#446F41] transition-all duration-200 group"
@@ -31,7 +31,7 @@ const LocationSelectPage = () => {
             <span className="text-2xl text-gray-400 group-hover:text-[#446F41]">←</span>
           </button>
 
-          {/* כפתור מחוץ לחנות */}
+         
           <button
             onClick={() => router.push('/OutStoreDuty')} 
             className="w-full flex items-center justify-between p-6 rounded-lg border-2 border-transparent bg-gray-50 hover:bg-green-50 hover:border-[#446F41] transition-all duration-200 group"

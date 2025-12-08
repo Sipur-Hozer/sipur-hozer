@@ -59,11 +59,11 @@ const InsideRolesPage = () => {
           
           <label className="text-sm font-semibold text-gray-600 mr-1">אנא בחר תפקיד מהרשימה:</label>
           
-          {/* קומפוננטת ה-Dropdown */}
+          
           <div className="relative">
             <select
               value={selectedRole}
-              onChange={handleRoleChange} // <--- שינוי 4: שימוש בפונקציה החדשה במקום ישירות ב-setSelectedRole
+              onChange={handleRoleChange} 
               className="w-full h-14 px-4 pl-10 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-[#446F41] focus:border-[#446F41] block text-lg appearance-none cursor-pointer"
             >
               <option value="" disabled>לחץ לבחירה...</option>
@@ -78,12 +78,12 @@ const InsideRolesPage = () => {
             </div>
           </div>
 
-          {/* <--- שינוי 5: בלוק חדש שמופיע רק בבחירת "טיפול בהזמנות אינטרנט" */}
+         
           {selectedRole === 'טיפול בהזמנות אינטרנט' && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="text-sm font-semibold text-gray-600 mr-1 mb-1 block">כמות ספרים שנמכרו:</label>
               <input
-                type="number" // <--- סוג מספר בלבד
+                type="number" 
                 min="0"
                 placeholder="הקלד כמות..."
                 value={booksQuantity}
@@ -117,7 +117,7 @@ const InsideRolesPage = () => {
             
           )}
 
-          {/* שדה כתיבה שנפתח רק אם בחרו 'אחר' */}
+        
           {selectedRole === 'other' && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="text-sm font-semibold text-gray-600 mr-1 mb-1 block">הזן את שם התפקיד:</label>
@@ -136,7 +136,7 @@ const InsideRolesPage = () => {
 
         <button
           onClick={handleConfirm}
-          // <--- שינוי 6: הוספת תנאי לנעילת הכפתור (אם זה הזמנות ואין כמות - נשאר נעול)
+          
           disabled={
             !selectedRole || 
             (selectedRole === 'other' && !customRole) 
