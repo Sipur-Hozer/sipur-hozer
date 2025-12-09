@@ -44,16 +44,15 @@ jobs:
       # 2. Automatically commit the updated package-lock.json file
       # This ensures that the generated lock file (with Jest dependencies) is saved to the repo.
       - name: Commit updated package-lock.json
-        # Runs even if previous steps failed, ensuring the lock file is committed if installation succeeded.
         if: always()
         run: |
-          # Check if there are any changes in the Git status (meaning package-lock.json changed)
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             git add package-lock.json
             git commit -m "ci: Update package-lock.json with test dependencies"
-            git push
+            # התיקון: ציון מפורש של ה-Branch שאליו דוחפים
+            git push origin HEAD:${{ github.ref_name }}
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for the push operation
