@@ -63,36 +63,49 @@ The system follows a microservices-oriented approach:
 
 ## 💻 Getting Started
 
-💻 Getting Started
-Prerequisites
+### Prerequisites
 
-Docker and Docker Compose
+- **Docker & Docker Compose** (Essential - the entire workflow relies on containers)
+- **Make** (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash).
+- *Note: You do not need Go or Node.js installed on your host machine.*
 
-Make (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash).
+### 🚀 Run Application
 
-Installation & Running The easiest way to run the entire system is using the provided Makefile automation.
+The easiest way to run the entire system is using the provided Makefile automation. This handles building the images, setting up the network, and launching the initialization scripts.
 
-Clone the repository git clone https://github.com/your-username/sipur-hozer-project.git cd sipur-hozer-project
+**1. Start the System**
+This command builds the Docker images, starts the containers in the background, and automatically runs the launch script (`scripts/open_app.sh`).
 
-Start the Application Use the make command to build the project and start the services in the background: make run
-
-This will build the Docker images and start the containers.
-
-It also runs the launch script (scripts/open_app.sh) automatically.
-
-Your terminal will remain free for use.
-
-Common Commands
-
-View Logs: If you need to debug or see server output, run: make logs
-
-Stop the App: When you are finished, run: make stop
-
-Access the Application
-
+make run
 Frontend: http://localhost:3000
 
-API: http://localhost:8080 (or your configured port)
+API: http://localhost:8080
+
+Note: Your terminal will remain free for use after the app starts.
+
+2. View Logs Since the app runs in the background, use this command to follow the server output:
+
+make logs
+
+3. Stop the System Stops and removes the running containers:
+
+make stop
+
+🧪 Build & Quality Checks
+These commands run inside isolated Docker containers to ensure consistency across all development environments.
+
+Build Images Compiles the production-ready Docker images for both Backend and Frontend.
+
+make build
+
+Run Linters Runs code quality checks inside temporary Docker containers. If this command passes, your code is clean and adheres to project standards.
+
+make lint
+
+🔧 Advanced / Maintenance
+Deep Clean Removes all Docker artifacts (images, volumes) created by this project to ensure a clean slate:
+
+make clean
 
 ## 👥 The Team
 
