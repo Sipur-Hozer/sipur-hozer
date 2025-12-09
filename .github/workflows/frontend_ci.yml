@@ -8,7 +8,7 @@ on:
     branches: [ main, master, develop ]
     paths:
       - 'frontend/**'
-      - '.github/workflows/frontend_ci.yml'
+#      - '.github/workflows/frontend_ci.yml'
   pull_request:
     branches: [ main, master, develop ]
     paths:
