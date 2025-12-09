@@ -1,3 +1,5 @@
+# location: ./Makefile
+
 # --- Variables ---
 COMPOSE_FILE=./deploy/docker-compose.yml
 SCRIPT_FILE=./scripts/open_app.sh
@@ -5,8 +7,6 @@ SCRIPT_FILE=./scripts/open_app.sh
 BACKEND_DIR=./backend
 # CHANGE THIS LINE: Remove "/app" from the end
 FRONTEND_DIR=./frontend 
-
-# ... rest of file is unchanged
 
 .PHONY: all
 all: help
@@ -26,6 +26,14 @@ lint:
 	@$(MAKE) -C $(BACKEND_DIR) lint
 	@$(MAKE) -C $(FRONTEND_DIR) lint
 	@echo "✅ Lint complete."
+
+# --- NEW: Test Command ---
+.PHONY: test
+test:
+	@echo "🧪 Testing entire project..."
+	@$(MAKE) -C $(BACKEND_DIR) test
+	@$(MAKE) -C $(FRONTEND_DIR) test
+	@echo "✅ All tests passed."
 
 .PHONY: clean-local
 clean-local:
@@ -77,6 +85,7 @@ help:
 	@echo "  --- Local Dev ---"
 	@echo "  make build    - Compile Backend and Frontend locally"
 	@echo "  make lint     - Lint code for both"
+	@echo "  make test     - Run unit tests for both"
 	@echo "  --- Docker ---"
 	@echo "  make run      - Start app in Docker and open browser"
 	@echo "  make stop     - Stop Docker application"
