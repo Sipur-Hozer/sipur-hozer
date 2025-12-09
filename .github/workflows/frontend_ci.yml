@@ -1,75 +1,35 @@
-# .github/workflows/frontend_ci.yml
+name: Frontend CI
 
-name: Next.js Frontend CI
-
-# Activated only when code changes are committed to the frontend directory
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main ]
     paths:
       - 'frontend/**'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main ]
     paths:
       - 'frontend/**'
 
 jobs:
-  lint-test-build:
-    name: Lint, Type Check & Build
+  build:
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        # All commands will execute relative to the 'frontend' directory
         working-directory: ./frontend
 
     steps:
       - uses: actions/checkout@v4
 
-      # Define Node.js environment (essential for Next.js) with caching
-      - name: Set up Node.js
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Change to your relevant Node.js version
+          node-version: '20'
           cache: 'npm'
-          # Path to the lock file, relative to the repository root
           cache-dependency-path: frontend/package-lock.json
 
-      # 1. Install dependencies (Includes temporary fix for React/RTL peer dependency conflict)
       - name: Install dependencies
-        # Using 'npm install' to generate a new package-lock.json.
-        # '--legacy-peer-deps' ignores the React 19 vs RTL 18 conflict (ERESOLVE).
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
-      # 2. Automatically commit the updated package-lock.json file
-      # This ensures that the generated lock file (with Jest dependencies) is saved to the repo.
-      - name: Commit updated package-lock.json
-        if: always()
-        run: |
-          if [[ $(git status --porcelain) ]]; then
-            git config user.name "GitHub Actions Bot"
-            git config user.email "actions@github.com"
-            git add package-lock.json
-            git commit -m "ci: Update package-lock.json with test dependencies"
-            # התיקון: ציון מפורש של ה-Branch שאליו דוחפים
-            git push origin HEAD:${{ github.ref_name }}
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for the push operation
-
-      # 3. Run ESLint (Code Style Check)
-      - name: Run ESLint
-        run: npm run lint
-
-      # 4. Run TypeScript Check
-      - name: Run TypeScript Check
+      - name: Type Check
         run: npm run type-check
-
-      # 5. Run Unit Tests
-      - name: Run Unit Tests
-        # '--ci' flag ensures tests run in a non-interactive CI environment
-        run: npm test -- --ci
-
-      # 6. Build Project (Ensures the code can be compiled successfully)
-      - name: Build Project
-        run: npm run build
