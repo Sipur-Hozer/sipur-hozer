@@ -47,7 +47,6 @@ jobs:
         # Runs even if previous steps failed, ensuring the lock file is committed if installation succeeded.
         if: always()
         run: |
-          cd frontend
           # Check if there are any changes in the Git status (meaning package-lock.json changed)
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions Bot"
