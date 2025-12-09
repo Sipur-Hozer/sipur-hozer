@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
-    "test": "echo \"No tests defined\" && exit 0"
+    "test": "jest"
   },
   "dependencies": {
     "lucide-react": "^0.555.0",
