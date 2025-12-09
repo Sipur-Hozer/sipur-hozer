@@ -65,47 +65,95 @@ The system follows a microservices-oriented approach:
 
 ### Prerequisites
 
-- **Docker & Docker Compose** (Essential - the entire workflow relies on containers)
-- **Make** (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash).
-- *Note: You do not need Go or Node.js installed on your host machine.*
+Since the entire workflow (running, testing, and linting) is containerized, you only need:
+
+Docker & Docker Compose (Essential)
+
+Make (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash)
+
+Note: You do not need Go, Node.js, or any other language dependencies installed on your host machine.
 
 ### 🚀 Run Application
 
-The easiest way to run the entire system is using the provided Makefile automation. This handles building the images, setting up the network, and launching the initialization scripts.
+The easiest way to run the entire system is using the provided Make automation.
 
-**1. Start the System**
-This command builds the Docker images, starts the containers in the background, and automatically runs the launch script (`scripts/open_app.sh`).
+Start the System
+
+Builds the Docker images, starts the containers in the background, and automatically launches the application.
 
 make run
+
+
 Frontend: http://localhost:3000
 
 API: http://localhost:8080
 
 Note: Your terminal will remain free for use after the app starts.
 
-2. View Logs Since the app runs in the background, use this command to follow the server output:
+View Logs
+
+Follow the server output in real-time:
 
 make logs
 
-3. Stop the System Stops and removes the running containers:
+
+Stop the System
+
+Stops and removes the running containers:
 
 make stop
 
-🧪 Build & Quality Checks
-These commands run inside isolated Docker containers to ensure consistency across all development environments.
 
-Build Images Compiles the production-ready Docker images for both Backend and Frontend.
+🧪 Development & Quality Checks
 
-make build
+These commands run inside isolated Docker containers to ensure consistency.
 
-Run Linters Runs code quality checks inside temporary Docker containers. If this command passes, your code is clean and adheres to project standards.
+Run Tests
+
+Executes the test suites for both Backend and Frontend inside a container.
+
+make test
+
+
+Run Linters
+
+Runs code quality checks and static analysis inside a container.
 
 make lint
 
-🔧 Advanced / Maintenance
-Deep Clean Removes all Docker artifacts (images, volumes) created by this project to ensure a clean slate:
+
+Access Container Shells
+
+If you need to debug inside the running environment:
+
+Backend: make shell-back
+
+Frontend: make shell-front
+
+
+🔧 Maintenance
+
+Rebuild Images
+
+Force a rebuild of the Docker images (useful if you changed dependencies).
+
+make images
+
+
+Deep Clean
+
+Removes all Docker artifacts (images, volumes, and orphans) created by this project to ensure a completely clean slate.
 
 make clean
+
+
+ℹ️ Help
+
+To see a full list of available commands directly in your terminal:
+
+make help
+
+
 
 ## 👥 The Team
 
