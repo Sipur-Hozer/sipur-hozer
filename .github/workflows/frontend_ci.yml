@@ -1,0 +1,59 @@
+# .github/workflows/frontend_ci.yml
+
+name: Next.js Frontend CI
+
+# activated only when changes are commited to frontend files
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend_ci.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  lint-test-build:
+    name: Lint, Type Check & Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        # every command will run relative to 'frontend'
+        working-directory: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # defining Node.js (which is essential to Next.js) with caching
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # should be changed to relevant version
+          cache: 'npm'
+          # the following path is relative to base path
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 2. checking Linting
+      # requires 'lint' script in package.json
+      - name: Run ESLint
+        run: npm run lint
+
+      # 3. Type check (TypeScript)
+      # requires 'type-check' script in package.json
+      - name: Run TypeScript Check
+        run: npm run type-check
+
+      # 4. run unit tests (Unit Tests)
+      # requires 'test' script in package.json
+      - name: Run Unit Tests
+        run: npm test -- --ci
+
+      # 5. try to build (Build)
+      - name: Build Project
+        run: npm run build
