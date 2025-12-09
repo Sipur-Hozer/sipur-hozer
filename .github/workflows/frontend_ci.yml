@@ -2,13 +2,12 @@
 
 name: Next.js Frontend CI
 
-# activated only when changes are commited to frontend files
+# Activated only when code changes are committed to the frontend directory
 on:
   push:
     branches: [ main, master, develop ]
     paths:
       - 'frontend/**'
-#      - '.github/workflows/frontend_ci.yml'
   pull_request:
     branches: [ main, master, develop ]
     paths:
@@ -21,57 +20,58 @@ jobs:
 
     defaults:
       run:
-        # every command will run relative to 'frontend'
+        # All commands will execute relative to the 'frontend' directory
         working-directory: ./frontend
 
     steps:
       - uses: actions/checkout@v4
 
-      # defining Node.js (which is essential to Next.js) with caching
+      # Define Node.js environment (essential for Next.js) with caching
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # should be changed to relevant version
+          node-version: '20' # Change to your relevant Node.js version
           cache: 'npm'
-          # the following path is relative to base path
+          # Path to the lock file, relative to the repository root
           cache-dependency-path: frontend/package-lock.json
 
+      # 1. Install dependencies (Includes temporary fix for React/RTL peer dependency conflict)
       - name: Install dependencies
+        # Using 'npm install' to generate a new package-lock.json.
+        # '--legacy-peer-deps' ignores the React 19 vs RTL 18 conflict (ERESOLVE).
         run: npm install --legacy-peer-deps
 
-      # 2. checking Linting
-      # requires 'lint' script in package.json
-      - name: Run ESLint
-        run: npm run lint
-
-      # 3. Type check (TypeScript)
-      # requires 'type-check' script in package.json
-      - name: Run TypeScript Check
-        run: npm run type-check
-
-      # 4. run unit tests (Unit Tests)
-      # requires 'test' script in package.json
-      - name: Run Unit Tests
-        run: npm test -- --ci
-
-      # frontend_ci.yml
-      # ... אחרי שלב 'Run Unit Tests'
-
-      # שלב חדש: יצירת קובץ Lock חדש ודחיפתו חזרה ל-GitHub
+      # 2. Automatically commit the updated package-lock.json file
+      # This ensures that the generated lock file (with Jest dependencies) is saved to the repo.
       - name: Commit updated package-lock.json
-        if: success()
+        # Runs even if previous steps failed, ensuring the lock file is committed if installation succeeded.
+        if: always()
         run: |
           cd frontend
+          # Check if there are any changes in the Git status (meaning package-lock.json changed)
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             git add package-lock.json
-            git commit -m "ci: Update package-lock.json after adding Jest dependencies"
+            git commit -m "ci: Update package-lock.json with test dependencies"
             git push
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for the push operation
 
-      # 5. try to build (Build)
+      # 3. Run ESLint (Code Style Check)
+      - name: Run ESLint
+        run: npm run lint
+
+      # 4. Run TypeScript Check
+      - name: Run TypeScript Check
+        run: npm run type-check
+
+      # 5. Run Unit Tests
+      - name: Run Unit Tests
+        # '--ci' flag ensures tests run in a non-interactive CI environment
+        run: npm test -- --ci
+
+      # 6. Build Project (Ensures the code can be compiled successfully)
       - name: Build Project
         run: npm run build
