@@ -1,26 +1,56 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv" 
+	"golang.org/x/crypto/bcrypt" 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type LoginRequest struct {
 	Phone    string `json:"phone"`
 	Password string `json:"password"`
 }
+type AddUserRequest struct {
+	fullName string `json:"fullName"`
+	phone    string `json:"phone"`
+	password string `json:"password"`
+	role     string `json:"role"`
+}
+
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+var db *gorm.DB
 
 // Logic: Verify credentials
 func authenticateUser(phone, password string) (bool, string) {
-	if phone == "1111" && password == "1111" {
-		return true, "manager"
+	var user User
+	result := db.Where("phone = ?", phone).First(&user)
+	if result.Error != nil {
+		return false, ""
 	}
-	if phone == "0505656888" && password == "1234" {
-		return true, "employee"
+	if !checkPasswordHash(password, user.Password) {
+		return false, "פרטים שגויים"
 	}
-	return false, ""
+	return true, user.role
 }
 
 // Setup: Configure routes
@@ -51,7 +81,14 @@ func setupRouter() *gin.Engine {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "שם משתמש או סיסמה שגויים"})
 		}
 	})
+	r.POST("/AddUser", func(c *gin.Context) {
+		var req AddUserRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "נתונים לא תקינים"})
+			return
+		}		
 
+	}
 	return r
 }
 
