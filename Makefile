@@ -5,32 +5,32 @@ COMPOSE_FILE=./deploy/docker-compose.yml
 SCRIPT_FILE=./scripts/open_app.sh
 
 BACKEND_DIR=./backend
-# CHANGE THIS LINE: Remove "/app" from the end
 FRONTEND_DIR=./frontend 
 
 .PHONY: all
 all: help
 
-# --- Local Development (No Docker) ---
+# --- Development Builds (Zero Local Dependencies) ---
+# These commands use temporary containers to build and test code.
+# No local Go or Node installation is required.
 
 .PHONY: build
 build:
-	@echo "🏗️  Building entire project locally..."
+	@echo "🏗️  Building Project (using Docker build-tools)..."
 	@$(MAKE) -C $(BACKEND_DIR) build
 	@$(MAKE) -C $(FRONTEND_DIR) build
-	@echo "✅ Build complete."
+	@echo "✅ Build complete (Artifacts created locally)."
 
 .PHONY: lint
 lint:
-	@echo "🔍 Linting entire project..."
+	@echo "🔍 Linting Project (inside Docker)..."
 	@$(MAKE) -C $(BACKEND_DIR) lint
 	@$(MAKE) -C $(FRONTEND_DIR) lint
 	@echo "✅ Lint complete."
 
-# --- NEW: Test Command ---
 .PHONY: test
 test:
-	@echo "🧪 Testing entire project..."
+	@echo "🧪 Testing Project (inside Docker)..."
 	@$(MAKE) -C $(BACKEND_DIR) test
 	@$(MAKE) -C $(FRONTEND_DIR) test
 	@echo "✅ All tests passed."
@@ -40,39 +40,24 @@ clean-local:
 	@$(MAKE) -C $(BACKEND_DIR) clean
 	@$(MAKE) -C $(FRONTEND_DIR) clean
 
-# --- Docker Orchestration (Original Commands) ---
+# --- Docker Orchestration (Running the App) ---
 
 .PHONY: run
 run:
-	@echo "Starting Docker containers in background..."
+	@echo "🚀 Starting App (Full Docker Environment)..."
 	docker-compose -f $(COMPOSE_FILE) up -d --build
 	@echo "Running launch script..."
-	@bash $(SCRIPT_FILE)
-	@echo "✅ App is running! Terminal is free."
-	@echo "👉 Type 'make stop' when you are done."
-	@echo "👉 Type 'make logs' if you need to see server output."
+	@bash $(SCRIPT_FILE) || echo "Script failed, but containers are running."
+	@echo "✅ App is running!"
 
 .PHONY: stop
 stop:
-	@echo "Stopping containers..."
+	@echo "🛑 Stopping containers..."
 	docker-compose -f $(COMPOSE_FILE) down
-	@echo "🛑 App stopped."
 
 .PHONY: logs
 logs:
 	docker-compose -f $(COMPOSE_FILE) logs -f
-
-.PHONY: images
-images:
-	docker-compose -f $(COMPOSE_FILE) build
-
-.PHONY: shell-back
-shell-back:
-	docker-compose -f $(COMPOSE_FILE) exec backend /bin/sh
-
-.PHONY: shell-front
-shell-front:
-	docker-compose -f $(COMPOSE_FILE) exec frontend /bin/sh
 
 .PHONY: clean
 clean: clean-local
@@ -81,13 +66,8 @@ clean: clean-local
 
 .PHONY: help
 help:
-	@echo "Usage:"
-	@echo "  --- Local Dev ---"
-	@echo "  make build    - Compile Backend and Frontend locally"
-	@echo "  make lint     - Lint code for both"
-	@echo "  make test     - Run unit tests for both"
-	@echo "  --- Docker ---"
-	@echo "  make run      - Start app in Docker and open browser"
-	@echo "  make stop     - Stop Docker application"
-	@echo "  make logs     - View Docker logs"
-	@echo "  make clean    - Deep clean (Local build files + Docker volumes)"
+	@echo "Usage (Zero Local Deps Mode):"
+	@echo "  make build    - Compile code using temporary Docker containers"
+	@echo "  make test     - Run tests using temporary Docker containers"
+	@echo "  make run      - Run the full app via Docker Compose"
+	@echo "  make stop     - Stop the app"

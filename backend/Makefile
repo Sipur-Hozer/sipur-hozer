@@ -1,34 +1,38 @@
-# Binary name
+# location: backend/Makefile
 BINARY_NAME=server
+
+# Run Go inside a container with persistent volumes for modules and build cache
+DOCKER_RUN=docker run --rm \
+	-v "$(PWD):/app" \
+	-w /app \
+	-v go-modules:/go/pkg/mod \
+	-v go-build-cache:/root/.cache/go-build \
+	golang:1.24-alpine
 
 .PHONY: all
 all: build test
 
-# Build the project locally (if you ever need to)
 .PHONY: build
 build:
-	@echo "🐘 Building Go Backend..."
-	go build -o bin/$(BINARY_NAME) main.go
-
-# NEW: Run this to install libraries via Docker without installing Go locally
-# Usage: make deps
-.PHONY: deps
-deps:
-	@echo "📦 Updating dependencies via Docker..."
-	docker run --rm -v "$(PWD)":/app -w /app golang:1.24-alpine \
-		go get github.com/lib/pq golang.org/x/crypto/bcrypt
-
-.PHONY: lint
-lint:
-	@echo "🔍 Linting Backend..."
-	go vet ./...
+	@echo "🐘 Building Go Backend (inside Docker)..."
+	# Build a Linux binary compatible with the final Docker image and WSL
+	$(DOCKER_RUN) sh -c "CGO_ENABLED=0 GOOS=linux go build -o bin/$(BINARY_NAME) main.go"
 
 .PHONY: test
 test:
-	@echo "🧪 Running Backend Tests..."
-	go test -v ./...
+	@echo "🧪 Running Backend Tests (inside Docker)..."
+	$(DOCKER_RUN) go test -v ./...
+
+.PHONY: lint
+lint:
+	@echo "🔍 Linting Backend (inside Docker)..."
+	$(DOCKER_RUN) go vet ./...
+
+.PHONY: deps
+deps:
+	@echo "📦 Updating Backend dependencies (inside Docker)..."
+	$(DOCKER_RUN) go mod tidy
 
 .PHONY: clean
 clean:
-	@echo "🧹 Cleaning Backend..."
 	rm -rf bin

@@ -1,17 +1,18 @@
 version: '3.8'
 
 services:
-  # The Go Backend
+  # The Go Backend Service
   api:
     build: ../backend
     ports:
       - "8080:8080"
     restart: always
-    environment:
-      # Docker automatically reads DATABASE_URL from the .env file in this folder
-      - DATABASE_URL=${DATABASE_URL}
+    # This loads all variables from the .env file located in the same directory
+    # into the container's environment variables.
+    env_file:
+      - .env
 
-  # The Next.js Frontend
+  # The Next.js Frontend Service
   web:
     build: ../frontend
     ports:
