@@ -1,24 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv" 
-	"golang.org/x/crypto/bcrypt" 
+	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// --- Structs ---
 
 type LoginRequest struct {
 	Phone    string `json:"phone"`
 	Password string `json:"password"`
 }
+
 type AddUserRequest struct {
 	gorm.Model
 	FullName string `json:"fullName"`
@@ -26,6 +27,8 @@ type AddUserRequest struct {
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }
+
+// --- Helper Functions ---
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -39,7 +42,7 @@ func checkPasswordHash(password, hash string) bool {
 
 var db *gorm.DB
 
-// Logic: Verify credentials
+// authenticateUser verifies the phone and password against the database
 func authenticateUser(phone, password string) (bool, string) {
 	var user AddUserRequest
 	result := db.Where("phone = ?", phone).First(&user)
@@ -47,61 +50,88 @@ func authenticateUser(phone, password string) (bool, string) {
 		return false, ""
 	}
 	if !checkPasswordHash(password, user.Password) {
-		return false, "פרטים שגויים"
+		return false, "Invalid credentials"
 	}
-	return true, user.role
+	return true, user.Role
 }
 
+// --- Database Initialization ---
+
 func initDB() {
-	err := godotenv.Load("../deploy/.env")
-	if err != nil {
-		log.Println("Warning: .env file not found, assuming environment variables are set.")
-	}
+	// 1. Try to load .env file.
+	// Note: In Docker, variables are often injected directly via 'env_file',
+	// so it's okay if this fails to find a physical file.
+	_ = godotenv.Load()               // Try current directory
+	_ = godotenv.Load("../deploy/.env") // Try relative path as fallback
 
 	dsn := os.Getenv("DATABASE_URL")
 	initialAdminPhone := os.Getenv("INITIAL_ADMIN_PHONE")
 	initialAdminPass := os.Getenv("INITIAL_ADMIN_PASSWORD")
-	
 
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err == nil {
-		break
-	}
+	var err error
+
+	// 2. Connect to Database
+	// CRITICAL: 'PrepareStmt: false' is required when using Supabase Transaction Pooler (port 6543).
+	// Without this, you will get "prepared statement already exists" errors.
+	db, err = gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, 
+	}), &gorm.Config{
+		PrepareStmt: false, 
+	})
 
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
+	// 3. Auto Migrate Schema
 	db.AutoMigrate(&AddUserRequest{})
 
-	var adminCount int64
-	db.Model(&AddUserRequest{}).Where("phone = ?", initialAdminPhone).Count(&adminCount)
-	if adminCount == 0 {
-		hashedPassword, _ := hashPassword(initialAdminPass)
-		
-		db.Create(&AddUserRequest{
-			Phone:    initialAdminPhone,
-			Password: hashedPassword, 
-			Role:     "admin",
-			FullName: "Master Admin",
-		})
+	// 4. Seed Initial Admin (only if environment variables exist)
+	if initialAdminPhone != "" && initialAdminPass != "" {
+		var adminCount int64
+		// Check if the admin already exists to prevent duplicate creation
+		db.Model(&AddUserRequest{}).Where("phone = ?", initialAdminPhone).Count(&adminCount)
+
+		if adminCount == 0 {
+			log.Println("Seeding Master Admin user...")
+			hashedPassword, _ := hashPassword(initialAdminPass)
+
+			admin := AddUserRequest{
+				Phone:    initialAdminPhone,
+				Password: hashedPassword,
+				Role:     "admin",
+				FullName: "Master Admin",
+			}
+
+			if err := db.Create(&admin).Error; err != nil {
+				log.Printf("Error creating admin user: %v\n", err)
+			} else {
+				log.Println("SUCCESS: Master Admin created successfully.")
+			}
+		}
+	} else {
+		log.Println("Info: Skipping admin seeding (Environment variables not set).")
 	}
 }
 
-// Setup: Configure routes
+// --- Router Setup ---
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 
+	// Configure CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:3000"},
 		AllowMethods: []string{"POST", "GET", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type"},
 	}))
 
+	// Login Route
 	r.POST("/login", func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "נתונים לא תקינים"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 			return
 		}
 
@@ -109,40 +139,47 @@ func setupRouter() *gin.Engine {
 
 		if isAuthenticated {
 			c.JSON(http.StatusOK, gin.H{
-				"message": "התחברת בהצלחה!",
+				"message": "Login successful",
 				"role":    role,
 			})
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "שם משתמש או סיסמה שגויים"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid phone or password"})
 		}
 	})
-	r.POST("/AddUser", func(c *gin.Context)) {
+
+	// Add User Route
+	r.POST("/create-user", func(c *gin.Context) {
 		var req AddUserRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "נתונים לא תקינים"})
-			return
-		}	
-		hashedPassword, err := hashPassword(req.Password)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "שגיאה ביצירת סיסמה"})
-			return
-		}	
-		newUser := AddUserRequest{
-			FullName: req.fullName,
-			Phone:    req.phone,			
-			Password: hashedPassword,
-			Role:     req.role,
-		}	
-		result := db.Create(&newUser)	
-		if result.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "שגיאה ביצירת משתמש"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "משתמש נוצר בהצלחה"})
 
-	}
+		hashedPassword, err := hashPassword(req.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+			return
+		}
+
+		newUser := AddUserRequest{
+			FullName: req.FullName,
+			Phone:    req.Phone,
+			Password: hashedPassword,
+			Role:     req.Role,
+		}
+
+		result := db.Create(&newUser)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+	})
+
 	return r
 }
+
+// --- Main Entry Point ---
 
 func main() {
 	initDB()
