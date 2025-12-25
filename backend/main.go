@@ -308,38 +308,47 @@ func setupRouter() *gin.Engine {
 	})
 
 	// End Shift Outside Route
-	// r.POST("/end-shift-outside", func(c *gin.Context) {
-	// 	session := sessions.Default(c)
-	// 	userPhone := session.Get("phone")
-	// 	if userPhone == nil {
-	// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not logged in"})
-	// 		return
-	// 	}
+	r.POST("/end-shift-outside", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userPhone := session.Get("phone")
+		if userPhone == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not logged in"})
+			return
+		}
 	
-	// 	var input struct {
-	// 		Role  string `json:"role"`
-	// 		Extra string `json:"extra"`
-	// 	}
+		var input struct {
+			Role  string `json:"role"`
+			Extra string `json:"extra"`
+		}
 	
-	// 	if err := c.ShouldBindJSON(&input); err != nil {
-	// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-	// 		return
-	// 	}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+			return
+		}
 	
-	// 	var shift ShiftRequest
-	// 	if err := db.Where("phone = ? AND exit_shift = ?", userPhone.(string), "").Order("created_at desc").First(&shift).Error; err != nil {
-	// 		c.JSON(http.StatusNotFound, gin.H{"error": "No open shift found"})
-	// 		return
-	// 	}
+		var shift ShiftRequest
+		result := db.Where("phone = ? AND exit_shift = ?", userPhone.(string), "").Order("created_at desc").First(&shift)
+		if result.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No open shift found"})
+			return
+		}
+
+		var extraFormatted string
+		switch input.Role {
+		default:
+			extraFormatted = "בוצע תפקיד ללא דיווח נוסף"
+		
+    }
 	
-	// 	shift.ExitShift = time.Now().Format("2006-01-02 15:04:05")
-	// 	shift.Role = input.Role
-	// 	shift.InStore = false
-	// 	shift.Extra = input.Extra
+		shift.ExitShift = time.Now().Format("02/01/2006 15:04:05")
+		shift.Role = input.Role
+		shift.InStore = true
+		shift.Extra = extraFormatted
 	
-	// 	db.Save(&shift)
-	// 	c.JSON(http.StatusOK, gin.H{"message": "Outside shift ended"})
-	// })
+		db.Save(&shift)
+		c.JSON(http.StatusOK, gin.H{"message": "Inside shift ended"})
+	})
+
 
 	return r
 }
