@@ -6,26 +6,8 @@ import { CheckCircle } from 'lucide-react';
 const EnterPage = () => {
   const router = useRouter(); 
 
-  const handleConfirm = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/start-shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-  
-      const data = await res.json();
-  
-      if (res.ok) {
-        alert("משמרת החלה בהצלחה ב-" + data.time);
-        router.push('/Browser');
-      } else {
-        alert("שגיאה: " + (data.error || "לא ניתן להתחיל משמרת"));
-      }
-    } catch (err) {
-      console.error("Connection error:", err);
-      alert("תקלה בתקשורת עם השרת");
-    }
+  const handleConfirm = () => {
+    router.back();
   };
 
   return (
@@ -37,9 +19,8 @@ const EnterPage = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           הפעולה בוצעה בהצלחה
         </h1>
-        {/* FIX: Replaced " with &quot; to satisfy the linter */}
         <p className="text-gray-600 dark:text-gray-400 mb-8">
-          לחץ על &quot;אישור&quot; כדי לחזור לדף הקודם.
+          לחץ על "אישור" כדי לחזור לדף הקודם.
         </p>
 
         <button
