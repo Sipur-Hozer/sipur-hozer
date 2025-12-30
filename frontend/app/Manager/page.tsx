@@ -19,7 +19,7 @@ const ManagerPage = () => {
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex items-center justify-center p-4 relative" dir="rtl">
       
       <div className="absolute top-4 right-6 text-sm font-large text-gray-500">
-        פנל ניהול
+        פאנל ניהול
       </div>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
