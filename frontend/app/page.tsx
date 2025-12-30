@@ -33,7 +33,7 @@ const LoginPage = () => {
             if (response.ok && data.role == "employee") {
                 router.push('/Browser');
             } else if(response.ok && data.role == "admin") {
-                router.push('/Manger');
+                router.push('/Manager');
             }  else {
                 setError(data.message || 'שם משתמש/סיסמא שגויים - נסה שוב');
             } 
