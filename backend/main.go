@@ -15,33 +15,9 @@ import (
 	"fmt"
     "github.com/gin-contrib/sessions"
     "github.com/gin-contrib/sessions/cookie"
+	"my-backend/add_user_validation"
+	"my-backend/models"
 )
-
-// --- Structs ---
-
-type LoginRequest struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
-}
-
-type AddUserRequest struct {
-	gorm.Model
-	FullName string `json:"fullName"`
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
-}
-
-type ShiftRequest struct {
-	gorm.Model
-	Phone    	string `json:"phone"`
-	Role     	string `json:"role"`
-	InStore  	bool   `json:"inStore"`
-	EnterShift  string `json:"enterShift"`
-	ExitShift 	string `json:"exitShift"`
-	Extra	  	string `json:"extra"`
-}
-
 
 // --- Helper Functions ---
 
@@ -59,7 +35,7 @@ var db *gorm.DB
 
 // authenticateUser verifies the phone and password against the database
 func authenticateUser(phone, password string) (bool, string) {
-	var user AddUserRequest
+	var user models.AddUserRequest
 	result := db.Where("phone = ?", phone).First(&user)
 	if result.Error != nil {
 		return false, ""
@@ -100,19 +76,19 @@ func initDB() {
 	}
 
 	// 3. Auto Migrate Schema
-	db.AutoMigrate(&AddUserRequest{}, &ShiftRequest{})
+	db.AutoMigrate(&models.AddUserRequest{}, &models.ShiftRequest{})
 
 	// 4. Seed Initial Admin (only if environment variables exist)
 	if initialAdminPhone != "" && initialAdminPass != "" {
 		var adminCount int64
 		// Check if the admin already exists to prevent duplicate creation
-		db.Model(&AddUserRequest{}).Where("phone = ?", initialAdminPhone).Count(&adminCount)
+		db.Model(&models.AddUserRequest{}).Where("phone = ?", initialAdminPhone).Count(&adminCount)
 
 		if adminCount == 0 {
 			log.Println("Seeding Master Admin user...")
 			hashedPassword, _ := hashPassword(initialAdminPass)
 
-			admin := AddUserRequest{
+			admin := models.AddUserRequest{
 				Phone:    initialAdminPhone,
 				Password: hashedPassword,
 				Role:     "admin",
@@ -158,7 +134,7 @@ func setupRouter() *gin.Engine {
 
 	// // Login Route
 	// r.POST("/login", func(c *gin.Context) {
-	// 	var req LoginRequest
+	// 	var req models.LoginRequest
 	// 	if err := c.ShouldBindJSON(&req); err != nil {
 	// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 	// 		return
@@ -178,7 +154,7 @@ func setupRouter() *gin.Engine {
 
 	// Login Route
 	r.POST("/login", func(c *gin.Context) {
-		var req LoginRequest
+		var req models.LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 			return
@@ -207,19 +183,22 @@ func setupRouter() *gin.Engine {
 
 	// Add User Route
 	r.POST("/create-user", func(c *gin.Context) {
-		var req AddUserRequest
+		var req models.AddUserRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 			return
 		}
+
+		if(!add_user_validation.AddUserValidation(c, &req, db)){
+			return
+		}	
 
 		hashedPassword, err := hashPassword(req.Password)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
 			return
 		}
-
-		newUser := AddUserRequest{
+		newUser := models.AddUserRequest{
 			FullName: req.FullName,
 			Phone:    req.Phone,
 			Password: hashedPassword,
@@ -246,7 +225,7 @@ func setupRouter() *gin.Engine {
 	
 		currentTime := time.Now().Format("02/01/2006 15:04:05")
 	
-		newShift := ShiftRequest{
+		newShift := models.ShiftRequest{
 			Phone:      userPhone.(string),
 			EnterShift: currentTime,
 		}
@@ -279,7 +258,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 	
-		var shift ShiftRequest
+		var shift models.ShiftRequest
 		result := db.Where("phone = ? AND exit_shift = ?", userPhone.(string), "").Order("created_at desc").First(&shift)
 		if result.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "No open shift found"})
@@ -326,7 +305,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 	
-		var shift ShiftRequest
+		var shift models.ShiftRequest
 		result := db.Where("phone = ? AND exit_shift = ?", userPhone.(string), "").Order("created_at desc").First(&shift)
 		if result.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "No open shift found"})
