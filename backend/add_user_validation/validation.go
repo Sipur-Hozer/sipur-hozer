@@ -1,4 +1,6 @@
-func addUserValidation(req *AddUserRequest, db *gorm.DB) bool{	
+package add_user_validation
+
+func AddUserValidation(req *AddUserRequest, db *gorm.DB) bool{	
 // Check if user already exists
 		var existingUser AddUserRequest
 		result := db.Where("phone = ?", req.Phone).First(&existingUser)

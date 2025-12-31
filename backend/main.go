@@ -15,6 +15,7 @@ import (
 	"fmt"
     "github.com/gin-contrib/sessions"
     "github.com/gin-contrib/sessions/cookie"
+	"my-backend/add_user_validation"
 )
 
 // --- Structs ---
@@ -213,7 +214,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		if(!addUserValidation(&req, db)){
+		if(!AddUserValidation(&req, db)){
 			return
 		}	
 
