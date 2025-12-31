@@ -18,10 +18,45 @@ const OutsideRolesPage = () => {
   const [selectedRole, setSelectedRole] = useState('');
   const [customRole, setCustomRole] = useState('');
 
-  const handleConfirm = () => {
+  const [status, setStatus] = useState({ loading: false, message: '', error: false });
+
+  const handleConfirm = async () => {
+    setStatus({ loading: true, message: 'מעדכן סיום משמרת שטח...', error: false });
+
     const finalRole = selectedRole === 'other' ? customRole : selectedRole;
-    console.log("Selected Outside Role:", finalRole);
-    router.push('/Browser');
+    
+    const dataToSend = {
+        role: finalRole,
+        extra: "דיווח מהשטח"
+    };
+
+    console.log("Sending Outside Shift Data:", dataToSend);
+
+    try {
+      const res = await fetch('http://localhost:8080/end-shift-outside', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(dataToSend),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus({ loading: false, message: 'הדיווח התקבל בהצלחה!', error: false });
+        alert("סיום משמרת שטח דווח בהצלחה!");
+        
+        router.push('/Browser');
+      } else {
+        const errorMsg = data.error || "שגיאה בסיום משמרת שטח";
+        setStatus({ loading: false, message: errorMsg, error: true });
+        alert("שגיאה: " + errorMsg);
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+      setStatus({ loading: false, message: 'תקלה בתקשורת עם השרת', error: true });
+      alert("תקלה בתקשורת עם השרת");
+    }
   };
 
   return (

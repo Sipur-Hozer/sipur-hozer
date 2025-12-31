@@ -6,8 +6,26 @@ import { CheckCircle } from 'lucide-react';
 const EnterPage = () => {
   const router = useRouter(); 
 
-  const handleConfirm = () => {
-    router.back();
+  const handleConfirm = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/start-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        alert("משמרת החלה בהצלחה ב-" + data.time);
+        router.push('/Browser');
+      } else {
+        alert("שגיאה: " + (data.error || "לא ניתן להתחיל משמרת"));
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+      alert("תקלה בתקשורת עם השרת");
+    }
   };
 
   return (
