@@ -10,14 +10,6 @@ import (
 )
 
 func AddUserValidation(c *gin.Context, req *models.AddUserRequest, db *gorm.DB) bool{	
-// Check if user already exists
-	var existingUser models.AddUserRequest
-	result := db.Where("phone = ?", req.Phone).First(&existingUser)
-	if result.Error == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "משתמש עם מספר טלפון זה כבר קיים"})
-		return false
-	}
-
 	// Check if the user name contains letters only
 	for _, ch := range req.FullName {
 		if !unicode.IsLetter(ch) && ch != ' ' {
@@ -37,6 +29,14 @@ func AddUserValidation(c *gin.Context, req *models.AddUserRequest, db *gorm.DB) 
 	// Check if the user name contains 10 digits
 	if len(req.Phone) != 10 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "על מספר טלפון להכיל 10 ספרות בדיוק"})
+		return false
+	}
+
+	// Check if user already exists
+	var existingUser models.AddUserRequest
+	result := db.Where("phone = ?", req.Phone).First(&existingUser)
+	if result.Error == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "משתמש עם מספר טלפון זה כבר קיים"})
 		return false
 	}
 	return true
