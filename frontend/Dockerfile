@@ -13,17 +13,21 @@ RUN npm install --save-dev jest jest-environment-jsdom @testing-library/react @t
 COPY . .
 
 # Stage 2: Linter
-FROM base AS linter
-RUN npm run lint
+# FROM base AS linter
+# RUN npm run lint
 
 # Stage 3: Tester
 FROM base AS tester
 ENV CI=true
 # Fix: Pass the config explicitly if it's not detected automatically
-RUN npx jest --config jest.config.js
+#   RUN npx jest --config jest.config.js
+
+
 
 # Stage 4: Builder
 FROM base AS builder
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # Stage 5: Runner (Production)

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '../config';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown } from 'lucide-react'; 
@@ -63,7 +64,7 @@ const InsideRolesPage = () => {
     console.log("Sending Data:", dataToSend);
 
     try {
-      const res = await fetch('http://localhost:8080/end-shift-inside', {
+      const res = await fetch(`${API_BASE_URL}/end-shift-inside`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

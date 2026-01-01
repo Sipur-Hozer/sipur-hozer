@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '../config';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Camera } from 'lucide-react';
@@ -33,7 +34,7 @@ const OutsideRolesPage = () => {
     console.log("Sending Outside Shift Data:", dataToSend);
 
     try {
-      const res = await fetch('http://localhost:8080/end-shift-outside', {
+      const res = await fetch(`${API_BASE_URL}/end-shift-outside`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
