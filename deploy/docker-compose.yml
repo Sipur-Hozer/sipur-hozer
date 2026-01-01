@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # The Go Backend Service
+  api:
+    build: ../backend
+    ports:
+      - "8080:8080"
+    restart: always
+    # This loads all variables from the .env file located in the same directory
+    # into the container's environment variables.
+    env_file:
+      - .env
+
+  # The Next.js Frontend Service
+  web:
+    build: ../frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    environment:
+      - NODE_ENV=production
