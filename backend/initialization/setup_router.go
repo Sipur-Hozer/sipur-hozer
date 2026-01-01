@@ -39,7 +39,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.Use(sessions.Sessions("mysession", store))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://frontend-service-413114889880.us-central1.run.app"},
 		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
@@ -244,7 +244,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	
 		shift.ExitShift = time.Now().Format("02/01/2006 15:04:05")
 		shift.Role = input.Role
-		shift.InStore = true
+		shift.InStore = false
 		shift.Extra = extraFormatted
 	
 		db.Save(&shift)

@@ -1,5 +1,6 @@
 'use client'; // חובה ב-Next.js App Router לשימוש ב-useRouter
 
+import { API_BASE_URL } from '../config';
 import { useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';
 
@@ -8,7 +9,7 @@ const EnterPage = () => {
 
   const handleConfirm = async () => {
     try {
-      const res = await fetch('http://localhost:8080/start-shift', {
+      const res = await fetch(`${API_BASE_URL}/start-shift`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

@@ -5,28 +5,32 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"golang.org/x/crypto/bcrypt"
-	"my-backend/models"
+	
+	// Make sure this matches your go.mod module name
+	"my-backend/models" 
 )
 
 // --- Helper Functions ---
 
+// hashPassword encrypts the password using bcrypt
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
+// checkPasswordHash compares a plain password with a hashed one
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
-
 // --- Database Initialization ---
 
-func InitDB(db *gorm.DB) {
+// InitDB initializes the database connection and returns the DB instance
+func InitDB() *gorm.DB {
 	// 1. Try to load .env file.
 	// Note: In Docker, variables are often injected directly via 'env_file',
 	// so it's okay if this fails to find a physical file.
@@ -37,6 +41,7 @@ func InitDB(db *gorm.DB) {
 	initialAdminPhone := os.Getenv("INITIAL_ADMIN_PHONE")
 	initialAdminPass := os.Getenv("INITIAL_ADMIN_PASSWORD")
 
+	var db *gorm.DB
 	var err error
 
 	// 2. Connect to Database
@@ -82,4 +87,7 @@ func InitDB(db *gorm.DB) {
 	} else {
 		log.Println("Info: Skipping admin seeding (Environment variables not set).")
 	}
+
+	// Returns the connected database instance to be used in main.go
+	return db
 }
