@@ -10,7 +10,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	
+	"github.com/xuri/excelize/v2"
+
 	"my-backend/models"
 	"my-backend/add_user_validation"
 
@@ -249,6 +250,69 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	
 		db.Save(&shift)
 		c.JSON(http.StatusOK, gin.H{"message": "Inside shift ended"})
+	})
+
+// Export Shifts to Excel Route
+	r.GET("/export-shifts", func(c *gin.Context) {
+		type ShiftWithUser struct {
+			FullName   string
+			Phone      string
+			Role       string
+			InStore    bool
+			EnterShift string
+			ExitShift  string
+			Extra      string
+		}
+
+		var results []ShiftWithUser
+
+		err := db.Table("shift_requests").
+			Select("add_user_requests.full_name, shift_requests.phone, shift_requests.role, shift_requests.in_store, shift_requests.enter_shift, shift_requests.exit_shift, shift_requests.extra").
+			Joins("JOIN add_user_requests ON add_user_requests.phone = shift_requests.phone").
+			Order("shift_requests.created_at DESC").
+			Scan(&results).Error
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shifts data"})
+			return
+		}
+
+		f := excelize.NewFile()
+		defer f.Close()
+
+		sheetName := "Shifts"
+		index, _ := f.NewSheet(sheetName)
+		f.SetActiveSheet(index)
+		f.DeleteSheet("Sheet1")
+
+		headers := []string{"שם מלא", "טלפון", "תפקיד", "מיקום", "זמן כניסה", "זמן יציאה", "הערות/דיווח"}
+		for i, header := range headers {
+			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+			f.SetCellValue(sheetName, cell, header)
+		}
+
+		for i, row := range results {
+			location := "חנות"
+			if !row.InStore {
+				location = "חוץ"
+			}
+
+			rowIdx := i + 2
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowIdx), row.FullName)
+			f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowIdx), row.Phone)
+			f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowIdx), row.Role)
+			f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowIdx), location)
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowIdx), row.EnterShift)
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowIdx), row.ExitShift)
+			f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowIdx), row.Extra)
+		}
+
+		c.Header("Content-Disposition", "attachment; filename=shifts_report.xlsx")
+		c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+		if err := f.Write(c.Writer); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to stream Excel file"})
+		}
 	})
 
 

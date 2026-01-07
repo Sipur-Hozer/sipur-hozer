@@ -15,6 +15,36 @@ const BG_CREAM = '#F3F6EB';
 const ManagerPage = () => {
   const router = useRouter();
 
+  const handleDownloadExcel = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/export-shifts', {
+        method: 'GET',
+        credentials: 'include', 
+      });
+
+      if (!response.ok) {
+        throw new Error('הורדת הדוח נכשלה');
+      }
+
+      const blob = await response.blob();
+      
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `דו"ח_משמרות_${new Date().toLocaleDateString('he-IL')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (error) {
+      console.error('Error downloading excel:', error);
+      alert('אירעה שגיאה בעת ניסיון להוריד את הקובץ');
+    }
+  };
+
   return (
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex items-center justify-center p-4 relative" dir="rtl">
       
@@ -42,9 +72,9 @@ const ManagerPage = () => {
           <button 
             className="w-full h-20 flex items-center justify-between px-6 rounded-xl shadow-md transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg bg-white border-2 text-gray-700"
             style={{ borderColor: BRAND_GREEN }}
-            onClick={() => router.push('/AddUserPage')}
+            onClick={handleDownloadExcel}
           >
-            <span className="text-xl font-bold" style={{ color: BRAND_GREEN }}>הצגת משמרות קיימות</span>
+            <span className="text-xl font-bold" style={{ color: BRAND_GREEN }}>הנפקת קובץ משמרות</span>
             <CalendarDays size={28} style={{ color: BRAND_GREEN }} />
           </button>
 
