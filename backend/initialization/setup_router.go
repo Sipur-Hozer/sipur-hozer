@@ -315,6 +315,45 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		}
 	})
 
+	// Export Users Summary to Excel Route
+	// Export Users to Excel Route
+    r.GET("/export-users", func(c *gin.Context) {
+        var users []models.AddUserRequest
+
+        if err := db.Find(&users).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users data"})
+            return
+        }
+
+        f := excelize.NewFile()
+        defer f.Close()
+
+        sheetName := "Users"
+        index, _ := f.NewSheet(sheetName)
+        f.SetActiveSheet(index)
+        f.DeleteSheet("Sheet1")
+
+        headers := []string{"שם מלא", "טלפון", "תפקיד"}
+        for i, header := range headers {
+            cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+            f.SetCellValue(sheetName, cell, header)
+        }
+
+        for i, user := range users {
+            rowIdx := i + 2
+            f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowIdx), user.FullName)
+            f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowIdx), user.Phone)
+            f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowIdx), user.Role)
+        }
+
+        fileName := "users_report.xlsx"
+        c.Header("Content-Disposition", "attachment; filename="+fileName)
+        c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+        if err := f.Write(c.Writer); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to stream Excel file"})
+        }
+    })
 
 	return r
 }

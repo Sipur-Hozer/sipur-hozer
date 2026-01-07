@@ -45,6 +45,33 @@ const ManagerPage = () => {
     }
   };
 
+  const handleDownloadUsersExcel = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/export-users', {
+        method: 'GET',
+        credentials: 'include', 
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
+  
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `סיכום_עובדים_${new Date().toLocaleDateString('he-IL')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      console.error('Download Error:', error);
+      alert(`שגיאה בהורדת דוח המשתמשים: ${error.message}`);
+    }
+  };
+
   return (
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex items-center justify-center p-4 relative" dir="rtl">
       
@@ -76,6 +103,15 @@ const ManagerPage = () => {
           >
             <span className="text-xl font-bold" style={{ color: BRAND_GREEN }}>הנפקת קובץ משמרות</span>
             <CalendarDays size={28} style={{ color: BRAND_GREEN }} />
+          </button>
+
+          <button 
+            className="w-full h-20 flex items-center justify-between px-6 rounded-xl shadow-md transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg bg-white border-2 text-gray-700"
+            style={{ borderColor: BRAND_GREEN }}
+            onClick={handleDownloadUsersExcel}
+          >
+            <span className="text-xl font-bold" style={{ color: BRAND_GREEN }}>דוח סיכום משתמשים</span>
+            <UserPlus size={28} style={{ color: BRAND_GREEN }} />
           </button>
 
           <button 
