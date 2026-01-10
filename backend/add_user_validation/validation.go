@@ -5,11 +5,12 @@ import (
 	"unicode"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"my-backend/domain" // Import the interface
 	"my-backend/models"
+    // Notice: "gorm.io/gorm" is removed!
 )
 
-func AddUserValidation(c *gin.Context, req *models.AddUserRequest, db *gorm.DB) bool{	
+func AddUserValidation(c *gin.Context, req *models.AddUserRequest, store domain.Registry) bool {
 	// Check if the user name contains letters only
 	for _, ch := range req.FullName {
 		if !unicode.IsLetter(ch) && ch != ' ' {
@@ -17,7 +18,7 @@ func AddUserValidation(c *gin.Context, req *models.AddUserRequest, db *gorm.DB) 
 			return false
 		}
 	}
-	
+
 	// Check if the user's phone number contains digits only
 	for _, ch := range req.Phone {
 		if !unicode.IsDigit(ch) && ch != ' ' {
@@ -33,12 +34,14 @@ func AddUserValidation(c *gin.Context, req *models.AddUserRequest, db *gorm.DB) 
 	}
 
 	// Check if user already exists
-	var existingUser models.AddUserRequest
-	result := db.Where("phone = ?", req.Phone).First(&existingUser)
-	if result.Error == nil {
+	// We use the Interface method .GetByPhone()
+	_, err := store.Users().GetByPhone(req.Phone)
+
+	// If err is nil, it means the user WAS found successfully (which is a conflict here)
+	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "משתמש עם מספר טלפון זה כבר קיים"})
 		return false
 	}
+
 	return true
 }
-	
