@@ -1,23 +1,24 @@
 package main
 
 import (
-	"gorm.io/gorm"
-	
-	// Make sure this matches your go.mod module name
+	"log"
 	"my-backend/initialization"
+	"my-backend/storage"
 )
 
-// --- Main Entry Point ---
-
 func main() {
-	var db *gorm.DB
+	// 1. Initialize the raw DB connection
+	db := Initialization.InitDB()
 
-	// Capture the returned database instance from InitDB
-	db = Initialization.InitDB()
+	// 2. Wrap it in the Postgres Registry
+	// This "injects" the database dependency into our storage layer
+	registry := storage.NewPostgresRegistry(db)
 
-	// Pass the active database connection to the router
-	r := Initialization.SetupRouter(db)
+	// 3. Pass the registry (interface) to the router
+	r := Initialization.SetupRouter(registry)
 
-	// Start the server on port 8080
-	r.Run(":8080")
+	log.Println("Server is running on port 8080...")
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal("Failed to start server: ", err)
+	}
 }
