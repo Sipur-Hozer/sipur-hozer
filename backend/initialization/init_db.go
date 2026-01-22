@@ -59,7 +59,7 @@ func InitDB() *gorm.DB {
 	}
 
 	// 3. Auto Migrate Schema
-	db.AutoMigrate(&models.AddUserRequest{}, &models.ShiftRequest{})
+	db.AutoMigrate(&models.AddUserRequest{}, &models.ShiftRequest{}, &models.WeeklyShift{})
 
 	// 4. Seed Initial Admin (only if environment variables exist)
 	if initialAdminPhone != "" && initialAdminPass != "" {
