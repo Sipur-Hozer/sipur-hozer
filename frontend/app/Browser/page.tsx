@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { LogIn, LogOut, UserMinus } from 'lucide-react'; 
+import { Calendar, LogIn, LogOut, UserMinus } from 'lucide-react'; 
 
 const IntermediatePage = () => {
   return (
@@ -57,6 +57,19 @@ const IntermediatePage = () => {
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               חזרה למסך הכניסה
             </p>
+        </Link>
+         <Link href="/ExistingShiftsPage" 
+            className="flex flex-col items-center justify-center 
+               w-64 h-64 p-8 
+               rounded-2xl shadow-xl transition duration-300 ease-in-out 
+               bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700
+               border-4 border-gray-600 dark:border-gray-400
+               text-gray-700 dark:text-gray-300"
+>
+           <Calendar className="h-16 w-16 mb-4" />
+          <h1 className="text-4xl font-extrabold tracking-tight text-center">
+                         המשמרות שלי
+         </h1>
         </Link>
       </div>
     </div>
