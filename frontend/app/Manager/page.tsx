@@ -115,6 +115,15 @@ const ManagerPage = () => {
           </button>
 
           <button 
+            className="w-full h-20 flex items-center justify-between px-6 rounded-xl shadow-md transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg text-white"
+            style={{ backgroundColor: BRAND_GREEN }}
+            onClick={() => router.push('/WeeklyShiftsPage')}
+          >
+            <span className="text-xl font-bold">יצירת משמרות שבועיות</span>
+            <UserPlus size={28} className="opacity-80" />
+          </button>
+
+          <button 
             disabled
             className="w-full h-20 flex items-center justify-between px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
           >
