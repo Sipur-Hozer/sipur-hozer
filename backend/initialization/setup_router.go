@@ -27,7 +27,7 @@ func SetupRouter(db domain.Registry) *gin.Engine {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://frontend-service-413114889880.us-central1.run.app"},
-		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -192,6 +192,29 @@ func SetupRouter(db domain.Registry) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"message": "Outside shift ended"})
 	})
 
+	// Check for Active Shift Route
+    r.GET("/check-active-shift", func(c *gin.Context) {
+        session := sessions.Default(c)
+        userPhone := session.Get("phone")
+
+        if userPhone == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "User not logged in"})
+            return
+        }
+
+        // Attempt to retrieve an open shift for the user
+        _, err := db.Shifts().GetOpenShift(userPhone.(string))
+        
+        // If an error occurs (meaning no open shift was found), return false
+        if err != nil {
+            c.JSON(http.StatusOK, gin.H{"hasOpenShift": false})
+            return
+        }
+
+        // If no error occurred, an open shift exists
+        c.JSON(http.StatusOK, gin.H{"hasOpenShift": true})
+    })
+
 	// Export Shifts Route
 	r.GET("/export-shifts", func(c *gin.Context) {
 		results, err := db.Shifts().GetForExport()
@@ -267,6 +290,75 @@ func SetupRouter(db domain.Registry) *gin.Engine {
 		c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 		f.Write(c.Writer)
 	})
+
+
+   r.GET("/users", func(c *gin.Context) {
+		users, err := db.Users().GetAll()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+			return
+		}
+		c.JSON(http.StatusOK, users)
+	})
+
+    r.GET("/admin/schedule", func(c *gin.Context) {
+        shifts, err := db.WeeklyShifts().GetAll()
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch schedule"})
+            return
+        }
+        c.JSON(http.StatusOK, shifts)
+    })
+
+    r.POST("/admin/schedule", func(c *gin.Context) {
+        var req models.WeeklyShift
+        if err := c.ShouldBindJSON(&req); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+            return
+        }
+
+        if err := db.WeeklyShifts().Create(&req); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add shift"})
+            return
+        }
+        c.JSON(http.StatusOK, gin.H{"message": "Weekly shift added"})
+    })
+
+    r.DELETE("/admin/schedule/:id", func(c *gin.Context) {
+        id := c.Param("id")
+        var shiftID uint
+        fmt.Sscanf(id, "%d", &shiftID)
+
+        if err := db.WeeklyShifts().Delete(shiftID); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete shift"})
+            return
+        }
+        c.JSON(http.StatusOK, gin.H{"message": "Shift deleted"})
+    })
+	
+	r.GET("/user/weekly-schedule", func(c *gin.Context) {
+        session := sessions.Default(c)
+        userPhone := session.Get("phone")
+
+        if userPhone == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "User not logged in"})
+            return
+        }
+
+        user, err := db.Users().GetByPhone(userPhone.(string))
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+            return
+        }
+
+        shifts, err := db.WeeklyShifts().GetByUserID(user.ID) 
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch schedule"})
+            return
+        }
+
+        c.JSON(http.StatusOK, shifts)
+    })
 
 	return r
 }

@@ -77,3 +77,32 @@ func (s *shiftStore) GetForExport() ([]domain.ShiftExportData, error) {
 		Scan(&results).Error
 	return results, err
 }
+
+type PostgresWeeklyShiftStore struct {
+    db *gorm.DB
+}
+
+func (s *PostgresWeeklyShiftStore) Create(shift *models.WeeklyShift) error {
+    return s.db.Create(shift).Error
+}
+
+func (s *PostgresWeeklyShiftStore) Delete(id uint) error {
+    return s.db.Delete(&models.WeeklyShift{}, id).Error
+}
+
+func (s *PostgresWeeklyShiftStore) GetByUserID(userID uint) ([]models.WeeklyShift, error) {
+    var shifts []models.WeeklyShift
+    err := s.db.Where("user_id = ?", userID).Find(&shifts).Error
+    return shifts, err
+}
+
+func (s *PostgresWeeklyShiftStore) GetAll() ([]models.WeeklyShift, error) {
+    var shifts []models.WeeklyShift
+    err := s.db.Find(&shifts).Error
+    return shifts, err
+}
+
+func (r *PostgresRegistry) WeeklyShifts() domain.WeeklyShiftStore {
+    return &PostgresWeeklyShiftStore{db: r.db}
+}
+

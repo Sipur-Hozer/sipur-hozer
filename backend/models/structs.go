@@ -28,3 +28,11 @@ type ShiftRequest struct {
 	ExitShift 	string `json:"exitShift"`
 	Extra	  	string `json:"extra"`
 }
+
+type WeeklyShift struct {
+    gorm.Model
+    UserID    uint   `json:"userId"`
+    Day       string `json:"day"`      
+    StartHour string `json:"startHour"` 
+    EndHour   string `json:"endHour"`
+}

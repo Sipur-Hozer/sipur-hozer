@@ -28,8 +28,17 @@ type ShiftStore interface {
 	GetForExport() ([]ShiftExportData, error)
 }
 
+type WeeklyShiftStore interface {
+    Create(shift *models.WeeklyShift) error
+    Delete(id uint) error
+    GetByUserID(userID uint) ([]models.WeeklyShift, error)
+    GetAll() ([]models.WeeklyShift, error)
+}
+
 // Registry combines all stores into one interface
 type Registry interface {
 	Users() UserStore
 	Shifts() ShiftStore
+	WeeklyShifts() WeeklyShiftStore
+
 }

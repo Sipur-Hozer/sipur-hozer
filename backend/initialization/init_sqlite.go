@@ -42,7 +42,7 @@ func InitSQLite() *gorm.DB {
 	}
 
 	// 3. Auto Migrate Schema (Same as before)
-	db.AutoMigrate(&models.AddUserRequest{}, &models.ShiftRequest{})
+	db.AutoMigrate(&models.AddUserRequest{}, &models.ShiftRequest{}, &models.WeeklyShift{})
 
 	// 4. Seed Initial Admin (Same logic as before)
 	if initialAdminPhone != "" && initialAdminPass != "" {
