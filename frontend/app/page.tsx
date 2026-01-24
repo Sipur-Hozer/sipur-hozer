@@ -1,7 +1,7 @@
 "use client";
 
 import { API_BASE_URL } from './config';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -18,7 +18,10 @@ const LoginPage = () => {
 
     const router = useRouter();
 
-    const handleLogin = async () => {
+    const passwordRef = useRef<HTMLInputElement>(null);
+    
+    const handleLogin = async (e: React.FormEvent) => {
+        if (e) e.preventDefault();
         setLoading(true);
         setError('');
 
@@ -46,6 +49,13 @@ const LoginPage = () => {
         }
     };
 
+    const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); 
+            passwordRef.current?.focus(); 
+        }
+    };
+
     const inputClasses = "h-16 w-full text-center text-lg font-semibold placeholder-current bg-opacity-70 rounded-lg outline-none focus:ring-2 focus:ring-[#446F41]";
 
     return (
@@ -63,20 +73,23 @@ const LoginPage = () => {
                     />
                 </div>
 
-                <div className="space-y-6 w-full">
-
+            <form onSubmit={handleLogin} className="space-y-6 w-full">
                     <input
                         type="tel"
+                        id = "phoneInput"
                         placeholder="מספר טלפון"
                         className={inputClasses}
                         style={{ backgroundColor: INPUT_BG_COLOR, color: BRAND_GREEN }}
                         value={phone}
+                        onKeyDown={handlePhoneKeyDown}
                         onChange={(e) => setPhone(e.target.value)}
                         dir="rtl"
                     />
 
                     <input
                         type="password"
+                        id = "passwordInput"
+                        ref = {passwordRef}
                         placeholder="סיסמה"
                         className={inputClasses}
                         style={{ backgroundColor: INPUT_BG_COLOR, color: BRAND_GREEN }}
@@ -88,7 +101,7 @@ const LoginPage = () => {
                     {error && <p className="text-red-600 text-center font-bold">{error}</p>}
 
                     <button
-                        onClick={handleLogin}
+                        type="submit"
                         disabled={loading}
                         className="w-full h-16 flex items-center justify-center text-lg font-bold text-white shadow-md rounded-lg transition duration-150 ease-in-out hover:bg-opacity-90 disabled:opacity-50"
                         style={{ backgroundColor: BRAND_GREEN }}
@@ -96,7 +109,7 @@ const LoginPage = () => {
                         {loading ? 'מתחבר...' : 'כניסה'}
                     </button>
 
-                </div>
+                </form>
             </div>
         </div>
     );
