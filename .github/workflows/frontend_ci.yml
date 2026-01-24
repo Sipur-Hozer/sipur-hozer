@@ -11,7 +11,7 @@ on:
       - 'frontend/**'
 
 jobs:
-  build:
+  build-and-test: # Renamed from 'build' to represent reality
     runs-on: ubuntu-latest
 
     defaults:
@@ -31,5 +31,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 1. Check for Syntax/Logic Errors (Linting)
+      # (Optional: Only add this if you have a 'lint' script in package.json)
+      # - name: Lint Code
+      #   run: npm run lint
+
+      # 2. Check for Type Errors (TypeScript)
       - name: Type Check
         run: npm run type-check
+
+      # 3. Run the Unit Tests (Jest)
+      # This runs the tests we just fixed!
+      - name: Run Unit Tests
+        run: npm test
+
+      # 4. Verify Production Build
+      # Ensures the app actually compiles for production
+      - name: Build Application
+        run: npm run build
