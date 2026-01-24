@@ -91,3 +91,83 @@ The system uses a Makefile to automate Docker commands.
 This command builds the Docker images, starts the containers in the background, and launches the application.
 ```bash
 make run
+```
+- **Frontend:** `http://localhost:3000`
+- **API:** `http://localhost:8080`
+- *Note: Your terminal will remain free for use after the app starts.*
+
+**2. View Logs**
+Follow the server output in real-time to debug issues.
+```bash
+make logs
+```
+
+**3. Stop the System**
+Stops and removes the running containers.
+```bash
+make stop
+```
+
+### 🧪 Development & Quality Checks
+
+These commands run inside isolated Docker containers to ensure consistency across all developer environments.
+
+**Run Tests**
+Executes the test suites for both Backend and Frontend.
+```bash
+make test
+```
+
+**Run Linters**
+Runs code quality checks and static analysis.
+```bash
+make lint
+```
+
+**Access Container Shells**
+If you need to debug directly inside the running environment:
+
+- Backend Shell:
+  ```bash
+  make shell-back
+  ```
+
+- Frontend Shell:
+  ```bash
+  make shell-front
+  ```
+
+### 🔧 Maintenance
+
+**Rebuild Images**
+Force a rebuild of the Docker images (useful if you changed `package.json` or `go.mod` dependencies).
+```bash
+make images
+```
+
+**Deep Clean**
+Removes all Docker artifacts (images, volumes, and orphans) created by this project. Use this to ensure a completely clean slate.
+```bash
+make clean
+```
+
+**Help**
+To see a full list of available commands directly in your terminal:
+```bash
+make help
+```
+
+---
+
+## 👥 The Team
+
+This project was designed and developed by:
+
+- Yanai Zehavi
+- Matan Gerstman
+- Rotem Harel
+- Yoav Fuchs
+- Noya De Levi
+- Dor Chobotaro
+
+**Instructor:** Maroon Ayoub
