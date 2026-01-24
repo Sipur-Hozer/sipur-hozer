@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,15 +11,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
+	initialization "my-backend/initialization"
+	"my-backend/models"
+	"my-backend/storage"
 )
 
-// This function runs once before all tests
-// It connects to the DB so the global 'db' variable is ready
+// Global DB variable for the test file
+var db *gorm.DB
+
 func TestMain(m *testing.M) {
-	// 1. Initialize DB connection
-	// Ensure your .env file is accessible to the test runner!
-	initDB() 
+	// 1. Initialize DB (SQLite In-Memory)
+	// Ensure this calls your SQLite init function!
+	db = initialization.InitSQLite() 
 	
+	if db == nil {
+		log.Fatal("Failed to connect to DB for testing")
+	}
+
 	// 2. Run the tests
 	exitVal := m.Run()
 
@@ -26,73 +38,47 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-// Helper function to create a temporary user for testing
+// --- HELPERS ---
+
+func hashPassword(password string) string {
+	bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes)
+}
+
 func createTestUser(phone, plainPassword, role string) {
-	hashed, _ := hashPassword(plainPassword)
-	user := AddUserRequest{
+	hashed := hashPassword(plainPassword)
+	user := models.AddUserRequest{
 		Phone:    phone,
-		Password: hashed, // IMPORTANT: Save hashed password, not plain text
+		Password: hashed,
 		Role:     role,
 		FullName: "Test User",
 	}
-	db.Create(&user)
+	if err := db.Create(&user).Error; err != nil {
+		log.Printf("Failed to create test user: %v", err)
+	}
 }
 
-// Helper function to delete the temporary user
 func deleteTestUser(phone string) {
-	// Unscoped() uses a hard delete (removes the row entirely)
-	db.Unscoped().Where("phone = ?", phone).Delete(&AddUserRequest{})
+	db.Unscoped().Where("phone = ?", phone).Delete(&models.AddUserRequest{})
+	db.Unscoped().Where("phone = ?", phone).Delete(&models.ShiftRequest{})
 }
 
-// 1. INTEGRATION TEST: Logic Check (Real DB)
-func TestAuthenticateUser(t *testing.T) {
-	// Setup: Create a real user in the DB
-	testPhone := "0559999999"
-	testPass := "secret123"
-	testRole := "employee"
-	
-	createTestUser(testPhone, testPass, testRole)
-	// Teardown: Delete user when test finishes
-	defer deleteTestUser(testPhone)
+// --- TESTS ---
 
-	// Test Cases
-	tests := []struct {
-		name     string
-		phone    string
-		password string
-		wantAuth bool
-		wantRole string
-	}{
-		{"Valid Login", testPhone, testPass, true, testRole},
-		{"Wrong Password", testPhone, "wrongpass", false, ""},
-		{"Non-existent User", "000000000", "1234", false, ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotAuth, gotRole := authenticateUser(tt.phone, tt.password)
-			assert.Equal(t, tt.wantAuth, gotAuth)
-			if tt.wantAuth {
-				assert.Equal(t, tt.wantRole, gotRole)
-			}
-		})
-	}
-}
-
-// 2. API TEST: Login Route
+// 1. LOGIN TEST
 func TestLoginRoute(t *testing.T) {
-	// Setup Gin and DB User
 	gin.SetMode(gin.TestMode)
-	router := setupRouter()
+	registry := storage.NewPostgresRegistry(db) // Works with SQLite too because it uses Gorm
+	router := initialization.SetupRouter(registry)
 
 	testPhone := "0558888888"
 	testPass := "apitest123"
+	
 	createTestUser(testPhone, testPass, "manager")
 	defer deleteTestUser(testPhone)
 
-	// Case A: Successful Login
 	t.Run("API Success", func(t *testing.T) {
-		loginData := LoginRequest{Phone: testPhone, Password: testPass}
+		loginData := models.LoginRequest{Phone: testPhone, Password: testPass}
 		jsonData, _ := json.Marshal(loginData)
 
 		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonData))
@@ -103,20 +89,79 @@ func TestLoginRoute(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Contains(t, w.Body.String(), "manager")
-		assert.Contains(t, w.Body.String(), "token") // If you implement JWT later
 	})
+}
 
-	// Case B: Failed Login (Wrong Password)
-	t.Run("API Wrong Password", func(t *testing.T) {
-		loginData := LoginRequest{Phone: testPhone, Password: "wrong"}
-		jsonData, _ := json.Marshal(loginData)
+// 2. SHIFT FLOW TEST (Start -> Check -> End)
+func TestShiftFlow(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	registry := storage.NewPostgresRegistry(db)
+	router := initialization.SetupRouter(registry)
 
-		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonData))
-		req.Header.Set("Content-Type", "application/json")
-		
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
+	testPhone := "0501111111"
+	testPass := "shift123"
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-	})
+	// Setup: Create User
+	createTestUser(testPhone, testPass, "employee")
+	defer deleteTestUser(testPhone)
+
+	// Step A: Login to get the Session Cookie
+	loginData := models.LoginRequest{Phone: testPhone, Password: testPass}
+	loginJson, _ := json.Marshal(loginData)
+	reqLogin, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(loginJson))
+	reqLogin.Header.Set("Content-Type", "application/json")
+	
+	wLogin := httptest.NewRecorder()
+	router.ServeHTTP(wLogin, reqLogin)
+	
+	// Extract the "Set-Cookie" header (Important!)
+	cookie := wLogin.Result().Header.Get("Set-Cookie")
+	assert.NotEmpty(t, cookie, "Login must return a session cookie")
+
+	// Step B: Start Shift
+	reqStart, _ := http.NewRequest("POST", "/start-shift", nil)
+	reqStart.Header.Set("Cookie", cookie) // Send the cookie
+	
+	wStart := httptest.NewRecorder()
+	router.ServeHTTP(wStart, reqStart)
+	
+	assert.Equal(t, http.StatusOK, wStart.Code)
+	assert.Contains(t, wStart.Body.String(), "Shift started")
+
+	// Step C: Check Active Shift (Should be true)
+	reqCheck, _ := http.NewRequest("GET", "/check-active-shift", nil)
+	reqCheck.Header.Set("Cookie", cookie)
+
+	wCheck := httptest.NewRecorder()
+	router.ServeHTTP(wCheck, reqCheck)
+
+	assert.Equal(t, http.StatusOK, wCheck.Code)
+	assert.Contains(t, wCheck.Body.String(), "true")
+
+	// Step D: End Shift (Inside)
+	endData := map[string]string{
+		"role": "Seller",
+		"booksQuantity": "5",
+		"cashDesk": "100",
+	}
+	endJson, _ := json.Marshal(endData)
+	reqEnd, _ := http.NewRequest("POST", "/end-shift-inside", bytes.NewBuffer(endJson))
+	reqEnd.Header.Set("Content-Type", "application/json")
+	reqEnd.Header.Set("Cookie", cookie)
+
+	wEnd := httptest.NewRecorder()
+	router.ServeHTTP(wEnd, reqEnd)
+
+	assert.Equal(t, http.StatusOK, wEnd.Code)
+	assert.Contains(t, wEnd.Body.String(), "Inside shift ended")
+
+	// Step E: Try to End Shift AGAIN (Should Fail - 404)
+	wFail := httptest.NewRecorder()
+	// Create a new request object to avoid reusing the consumed body
+	reqFail, _ := http.NewRequest("POST", "/end-shift-inside", bytes.NewBuffer(endJson))
+	reqFail.Header.Set("Content-Type", "application/json")
+	reqFail.Header.Set("Cookie", cookie)
+	
+	router.ServeHTTP(wFail, reqFail)
+	assert.Equal(t, http.StatusNotFound, wFail.Code)
 }

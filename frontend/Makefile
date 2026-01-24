@@ -7,26 +7,24 @@ PWD := $(CURDIR)
 all: build
 
 # 1. Build (Production Image)
-# Targets the 'runner' stage in Dockerfile
 .PHONY: build
 build:
 	@echo "🐳 Building Frontend Image..."
 	docker build --target runner -t sipur-frontend .
 
 # 2. Lint
-# Targets the 'linter' stage in Dockerfile
 .PHONY: lint
 lint:
 	@echo "🔍 Linting Frontend..."
 	docker build --target linter -t sipur-frontend-lint .
 
 # 3. Test
-# Targets the 'tester' stage in Dockerfile
-# Reuses the cached dependencies from the 'base' stage!
+# FIX: Added 'docker run' so the tests actually execute!
 .PHONY: test
 test:
 	@echo "🧪 Testing Frontend..."
 	docker build --target tester -t sipur-frontend-test .
+	docker run --rm sipur-frontend-test
 
 .PHONY: clean
 clean:

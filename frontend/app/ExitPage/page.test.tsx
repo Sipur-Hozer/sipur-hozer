@@ -3,52 +3,66 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LocationSelectPage from './page';
 
-// 1. MOCK: Next.js 'useRouter'
-const mockPush = jest.fn();
+// --- MOCKS ---
 
+// Mock Next.js Router
+const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
 }));
 
-describe('LocationSelectPage', () => {
-  // Reset the count before every test
+describe('LocationSelectPage (Exit Page)', () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    jest.clearAllMocks();
   });
 
-  it('renders the title and buttons', () => {
+  // --- RENDERING ---
+
+  test('renders the title and all navigation buttons', () => {
     render(<LocationSelectPage />);
 
-    // Check for the main title
+    // Check Title
     expect(screen.getByText('איפה אתה עובד היום?')).toBeInTheDocument();
 
-    // Check for the specific button text
+    // Check Main Options
     expect(screen.getByText('בתוך החנות')).toBeInTheDocument();
     expect(screen.getByText('מחוץ לחנות')).toBeInTheDocument();
+    
+    // Check Back Button
+    expect(screen.getByText('חזרה')).toBeInTheDocument();
   });
 
-  it('navigates to /InStoreDuty when "Inside Store" is clicked', () => {
+  // --- NAVIGATION ---
+
+  test('navigates to /InStoreDuty when clicking "Inside Store"', () => {
     render(<LocationSelectPage />);
 
-    // Find the "Inside Store" button by its text
-    const insideButton = screen.getByText('בתוך החנות').closest('button');
-    
-    // Simulate Click
-    fireEvent.click(insideButton!);
+    // Click "Inside Store" (בתוך החנות)
+    const insideBtn = screen.getByText('בתוך החנות');
+    fireEvent.click(insideBtn);
 
-    // Verify router.push was called with the correct path
     expect(mockPush).toHaveBeenCalledWith('/InStoreDuty');
   });
 
-  it('navigates to /OutStoreDuty when "Outside Store" is clicked', () => {
+  test('navigates to /OutStoreDuty when clicking "Outside Store"', () => {
     render(<LocationSelectPage />);
 
-    const outsideButton = screen.getByText('מחוץ לחנות').closest('button');
-    
-    fireEvent.click(outsideButton!);
+    // Click "Outside Store" (מחוץ לחנות)
+    const outsideBtn = screen.getByText('מחוץ לחנות');
+    fireEvent.click(outsideBtn);
 
     expect(mockPush).toHaveBeenCalledWith('/OutStoreDuty');
+  });
+
+  test('navigates to /Browser when clicking Back', () => {
+    render(<LocationSelectPage />);
+
+    // Click "Back" (חזרה)
+    const backBtn = screen.getByText('חזרה');
+    fireEvent.click(backBtn);
+
+    expect(mockPush).toHaveBeenCalledWith('/Browser');
   });
 });

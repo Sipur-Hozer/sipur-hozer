@@ -1,53 +1,129 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EnterPage from './page';
 
-// 1. MOCK: Next.js 'useRouter'
-// Since we are not running in a real browser, we have to fake the router
-const mockBack = jest.fn();
+// --- MOCKS ---
 
+// 1. Mock Next.js Router
+const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
-    back: mockBack, // Whenever router.back() is called, run our fake function
+    push: mockPush,
   }),
 }));
 
-describe('EnterPage Component', () => {
-  
-  // Clean up the fake function before each test so counts start at 0
+// 2. Mock Config
+jest.mock('../config', () => ({
+  API_BASE_URL: 'http://mock-api',
+}));
+
+describe('EnterPage (Start Shift)', () => {
   beforeEach(() => {
-    mockBack.mockClear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
   });
 
-  it('renders the success message correctly', () => {
+  // --- RENDERING ---
+
+  test('renders the confirmation card and buttons', () => {
     render(<EnterPage />);
 
-    // Check if the main heading exists
-    expect(screen.getByText('הפעולה בוצעה בהצלחה')).toBeInTheDocument();
-
-    // Check if the instruction text exists
-    expect(screen.getByText(/לחץ על "אישור" כדי לחזור לדף הקודם/i)).toBeInTheDocument();
+    expect(screen.getByText('אישור כניסה')).toBeInTheDocument();
+    expect(screen.getByText('אם ברצונך להתחיל משמרת לחץ על אישור')).toBeInTheDocument();
+    
+    // Main Action Button
+    expect(screen.getByRole('button', { name: 'אישור' })).toBeInTheDocument();
+    
+    // Back Button
+    expect(screen.getByText('חזרה')).toBeInTheDocument();
   });
 
-  it('renders the "Confirm" button', () => {
+  // --- SUCCESS FLOW ---
+
+  test('Starts shift successfully: API call -> Success Modal -> Redirect', async () => {
+    // Mock API Success
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ time: '08:00' }),
+    });
+
+    render(<EnterPage />);
+
+    // Click "Confirm"
+    const confirmBtn = screen.getByRole('button', { name: 'אישור' });
+    fireEvent.click(confirmBtn);
+
+    // 1. Check Loading State
+    expect(screen.getByText('מתחבר...')).toBeInTheDocument();
+
+    // 2. Wait for Success Modal
+    await waitFor(() => {
+      expect(screen.getByText('משמרת החלה')).toBeInTheDocument();
+      expect(screen.getByText('משמרת החלה בהצלחה בשעה: 08:00')).toBeInTheDocument();
+    });
+
+    // 3. Click Modal Close Button ("מעולה, תודה!")
+    const closeBtn = screen.getByText('מעולה, תודה!');
+    fireEvent.click(closeBtn);
+
+    // 4. Verify Redirect to Browser
+    expect(mockPush).toHaveBeenCalledWith('/Browser');
+  });
+
+  // --- ERROR FLOW (API) ---
+
+  test('Handles API Error: API Fail -> Error Modal -> No Redirect', async () => {
+    // Mock API Failure
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'Shift overlap detected' }),
+    });
+
+    render(<EnterPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'אישור' }));
+
+    // 1. Wait for Error Modal
+    await waitFor(() => {
+      expect(screen.getByText('שגיאה')).toBeInTheDocument();
+      expect(screen.getByText('Shift overlap detected')).toBeInTheDocument();
+    });
+
+    // 2. Click Modal Close Button ("הבנתי, סגור")
+    const closeBtn = screen.getByText('הבנתי, סגור');
+    fireEvent.click(closeBtn);
+
+    // 3. Verify Modal Closed but NO Redirect happened
+    await waitFor(() => {
+        expect(screen.queryByText('שגיאה')).not.toBeInTheDocument();
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  // --- ERROR FLOW (NETWORK) ---
+
+  test('Handles Network Error: Fetch Fail -> Error Modal', async () => {
+    // Mock Network Crash
+    (global.fetch as jest.Mock).mockRejectedValue(new Error('Network Down'));
+
+    render(<EnterPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'אישור' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('תקלה בתקשורת')).toBeInTheDocument();
+      expect(screen.getByText('לא ניתן להתחבר לשרת, אנא בדוק את החיבור שלך')).toBeInTheDocument();
+    });
+  });
+
+  // --- NAVIGATION ---
+
+  test('Back button navigates to Browser', () => {
     render(<EnterPage />);
     
-    // Check if the button exists
-    const button = screen.getByRole('button', { name: /אישור/i });
-    expect(button).toBeInTheDocument();
-  });
-
-  it('navigates back when the button is clicked', () => {
-    render(<EnterPage />);
-
-    // Find the button
-    const button = screen.getByRole('button', { name: /אישור/i });
-
-    // Simulate a user click
-    fireEvent.click(button);
-
-    // Verify that router.back() was actually called exactly once
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('חזרה'));
+    
+    expect(mockPush).toHaveBeenCalledWith('/Browser');
   });
 });

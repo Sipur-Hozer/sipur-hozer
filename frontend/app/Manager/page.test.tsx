@@ -1,38 +1,103 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import AdminPage from './page';
+import ManagerPage from './page';
 
-describe('AdminPage (Manager)', () => {
+// --- MOCKS ---
 
-  it('renders the manager page container', () => {
-    render(<AdminPage />);
-    
-    // Check if the main container exists (we can find it by the unique role or text inside)
-    // Since it's a generic div, we can check for the text content first.
-    expect(screen.getByText('משתמש מנהל')).toBeInTheDocument();
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+global.URL.createObjectURL = jest.fn(() => 'mock-url');
+global.URL.revokeObjectURL = jest.fn();
+window.alert = jest.fn();
+
+describe('ManagerPage', () => {
+  beforeEach(() => {
+    // IMPORTANT: Restore all mocks to original state before each test
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
   });
 
-  it('displays the correct background colors', () => {
-    const { container } = render(<AdminPage />);
-
-    // 1. Verify the main page background (BG_CREAM = #F3F6EB)
-    // We look for the first div which is the main container
-    const mainDiv = container.firstChild as HTMLElement;
-    expect(mainDiv).toHaveStyle('background-color: #F3F6EB');
+  test('renders the dashboard options', () => {
+    render(<ManagerPage />);
+    expect(screen.getByText('פאנל ניהול')).toBeInTheDocument();
+    expect(screen.getByText('יצירת משתמשים')).toBeInTheDocument();
   });
 
-  it('renders the manager badge with correct style', () => {
-    render(<AdminPage />);
+  test('navigates to AddUserPage', () => {
+    render(<ManagerPage />);
+    fireEvent.click(screen.getByText('יצירת משתמשים'));
+    expect(mockPush).toHaveBeenCalledWith('/AddUserPage');
+  });
 
-    const badge = screen.getByText('משתמש מנהל');
+  // --- DOWNLOAD TESTS (New Strategy) ---
+
+  test('handles "Export Shifts" successfully', async () => {
+    // 1. Mock the API Response
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['fake-excel-data'], { type: 'application/xlsx' }),
+    });
+
+    // 2. Spy on the 'click' method of ALL anchor elements.
+    // We provide an empty implementation to prevent JSDOM from trying to actually navigate/download.
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    render(<ManagerPage />);
     
-    // Check if the badge exists
-    expect(badge).toBeInTheDocument();
+    // 3. Trigger the export
+    fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
-    // Verify the badge color (BRAND_GREEN = #446F41)
-    expect(badge).toHaveStyle('background-color: #446F41');
-    expect(badge).toHaveClass('rounded-full');
-    expect(badge).toHaveClass('text-white');
+    await waitFor(() => {
+      // Verify API was called
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('export-shifts'),
+        expect.anything()
+      );
+      
+      // Verify that the code created a link and clicked it programmatically
+      expect(clickSpy).toHaveBeenCalled();
+      
+      // Verify it tried to create a URL for the blob
+      expect(global.URL.createObjectURL).toHaveBeenCalled();
+    });
+  });
+
+  test('handles "Export Users" successfully', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['fake-user-data']),
+    });
+
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    render(<ManagerPage />);
+    
+    fireEvent.click(screen.getByText('דוח סיכום משתמשים'));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('export-users'),
+        expect.anything()
+      );
+      expect(clickSpy).toHaveBeenCalled();
+    });
+  });
+
+  test('shows alert on download failure', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false });
+    
+    render(<ManagerPage />);
+    fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('שגיאה'));
+    });
   });
 });
