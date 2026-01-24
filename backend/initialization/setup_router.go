@@ -192,6 +192,29 @@ func SetupRouter(db domain.Registry) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"message": "Outside shift ended"})
 	})
 
+	// Check for Active Shift Route
+    r.GET("/check-active-shift", func(c *gin.Context) {
+        session := sessions.Default(c)
+        userPhone := session.Get("phone")
+
+        if userPhone == nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "User not logged in"})
+            return
+        }
+
+        // Attempt to retrieve an open shift for the user
+        _, err := db.Shifts().GetOpenShift(userPhone.(string))
+        
+        // If an error occurs (meaning no open shift was found), return false
+        if err != nil {
+            c.JSON(http.StatusOK, gin.H{"hasOpenShift": false})
+            return
+        }
+
+        // If no error occurred, an open shift exists
+        c.JSON(http.StatusOK, gin.H{"hasOpenShift": true})
+    })
+
 	// Export Shifts Route
 	r.GET("/export-shifts", func(c *gin.Context) {
 		results, err := db.Shifts().GetForExport()
@@ -312,6 +335,7 @@ func SetupRouter(db domain.Registry) *gin.Engine {
         }
         c.JSON(http.StatusOK, gin.H{"message": "Shift deleted"})
     })
+	
 	r.GET("/user/weekly-schedule", func(c *gin.Context) {
         session := sessions.Default(c)
         userPhone := session.Get("phone")

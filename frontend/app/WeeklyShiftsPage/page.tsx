@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
-import { Trash2, Plus, Calendar, User, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, User, ArrowRight, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 
 const BRAND_GREEN = '#446F41';
 const BG_CREAM = '#F3F6EB';
@@ -24,10 +24,12 @@ interface ShiftData {
 const AdminSchedulePage = () => {
   const router = useRouter();
   
+  // Data States
   const [users, setUsers] = useState<UserData[]>([]);
   const [shifts, setShifts] = useState<ShiftData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Form State
   const [formData, setFormData] = useState({
     userId: '',
     day: 'ראשון',
@@ -35,8 +37,18 @@ const AdminSchedulePage = () => {
     endHour: ''
   });
 
+  // Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState({ 
+    type: '', // 'success', 'error', 'confirm'
+    title: '', 
+    message: '' 
+  });
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+
   const daysOfWeek = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,9 +77,16 @@ const AdminSchedulePage = () => {
     fetchData();
   }, []);
 
+  // Helper to open modal
+  const openModal = (type: string, title: string, message: string) => {
+      setModalContent({ type, title, message });
+      setShowModal(true);
+  };
+
+  // Handle Adding a new Shift
   const handleAddShift = async () => {
     if (!formData.userId || !formData.startHour || !formData.endHour) {
-      alert("נא למלא את כל השדות");
+      openModal('error', 'שגיאה', 'נא למלא את כל השדות');
       return;
     }
 
@@ -84,47 +103,133 @@ const AdminSchedulePage = () => {
       });
 
       if (res.ok) {
+        // Refresh shift list
         const updatedShiftsRes = await fetch('http://localhost:8080/admin/schedule');
         const updatedShifts = await updatedShiftsRes.json();
         setShifts(updatedShifts);
         
+        // Reset form
         setFormData({ ...formData, userId: '', startHour: '', endHour: '' });
+        
+        openModal('success', 'הצלחה', 'המשמרת שובצה בהצלחה');
       } else {
-        alert("שגיאה בהוספת המשמרת");
+        openModal('error', 'שגיאה', 'אירעה שגיאה בעת הוספת המשמרת');
       }
     } catch (error) {
       console.error("Error adding shift:", error);
-      alert("תקלה בתקשורת עם השרת");
+      openModal('error', 'תקלה', 'תקלה בתקשורת עם השרת');
     }
   };
 
-  const handleDeleteShift = async (id: number) => {
-    if (!confirm("האם אתה בטוח שברצונך למחוק משמרת זו?")) return;
+  const handleDeleteRequest = (id: number) => {
+    setPendingDeleteId(id);
+    openModal('confirm', 'מחיקת משמרת', '?האם אתה בטוח שברצונך למחוק משמרת זו');
+  };
+
+  const executeDelete = async () => {
+    if (!pendingDeleteId) return;
 
     try {
-      const res = await fetch(`http://localhost:8080/admin/schedule/${id}`, {
+      const res = await fetch(`http://localhost:8080/admin/schedule/${pendingDeleteId}`, {
         method: 'DELETE',
       });
 
       if (res.ok) {
-        setShifts(shifts.filter((shift) => shift.ID !== id));
+        setShifts(shifts.filter((shift) => shift.ID !== pendingDeleteId));
+        setShowModal(false); // Close modal immediately on success
       } else {
-        alert("שגיאה במחיקת המשמרת");
+        openModal('error', 'שגיאה', 'לא ניתן למחוק את המשמרת.');
       }
     } catch (error) {
       console.error("Error deleting shift:", error);
+      openModal('error', 'תקלה', 'תקלה בתקשורת עם השרת.');
+    } finally {
+        setPendingDeleteId(null);
     }
   };
 
   return (
-    <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen p-6" dir="rtl">
+    <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen p-6 relative" dir="rtl">
       
+      {/* --- Custom Modal --- */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 transition-all">
+            
+            {/* Modal Header Icon */}
+            <div className={`p-6 flex justify-center ${
+                modalContent.type === 'success' ? 'bg-green-50' : 
+                modalContent.type === 'confirm' ? 'bg-orange-50' : 'bg-red-50'
+            }`}>
+                {modalContent.type === 'success' && (
+                    <div className="bg-green-100 p-3 rounded-full">
+                        <CheckCircle className="h-12 w-12 text-green-600" />
+                    </div>
+                )}
+                {modalContent.type === 'error' && (
+                    <div className="bg-red-100 p-3 rounded-full">
+                        <AlertCircle className="h-12 w-12 text-red-600" />
+                    </div>
+                )}
+                {modalContent.type === 'confirm' && (
+                    <div className="bg-orange-100 p-3 rounded-full">
+                        <AlertTriangle className="h-12 w-12 text-orange-600" />
+                    </div>
+                )}
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {modalContent.title}
+              </h3>
+              <p className="text-gray-600">
+                {modalContent.message}
+              </p>
+            </div>
+
+            {/* Modal Buttons */}
+            <div className="p-4 bg-gray-50 flex justify-center gap-3">
+              {modalContent.type === 'confirm' ? (
+                  <>
+                    <button 
+                        onClick={() => setShowModal(false)}
+                        className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl transition duration-200"
+                    >
+                        ביטול
+                    </button>
+                    <button 
+                        onClick={executeDelete}
+                        className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition duration-200"
+                    >
+                        כן, מחק
+                    </button>
+                  </>
+              ) : (
+                <button 
+                    onClick={() => setShowModal(false)}
+                    className={`w-full py-3 px-4 font-bold rounded-xl text-white transition duration-200 shadow-md hover:shadow-lg
+                        ${modalContent.type === 'success' 
+                            ? 'bg-[#446F41] hover:bg-[#365833]' 
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
+                >
+                    סגור
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- End Modal --- */}
+
       <div className="max-w-4xl mx-auto">
         
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800">ניהול סידור עבודה</h1>
           <button 
-            onClick={() => router.push('/admin')} 
+            onClick={() => router.push('/Manager')}
             className="flex items-center gap-2 text-gray-600 hover:text-[#446F41] transition-colors font-medium"
           >
             <ArrowRight size={20} />
@@ -132,6 +237,7 @@ const AdminSchedulePage = () => {
           </button>
         </div>
 
+        {/* Add Shift Form */}
         <div className="bg-white p-6 rounded-2xl shadow-md mb-8 border-t-4 border-[#446F41]">
           <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
             <Plus size={20} /> הוספת משמרת חדשה
@@ -139,6 +245,7 @@ const AdminSchedulePage = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             
+            {/* User Select */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-600 mb-1">בחר עובד</label>
               <div className="relative">
@@ -147,7 +254,7 @@ const AdminSchedulePage = () => {
                   value={formData.userId}
                   onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
                 >
-                  <option value="" disabled>בחר עובד מהרשימה...</option>
+                  <option value="" disabled>בחר עובד מהרשימה</option>
                   {users.length > 0 ? (
                       users.map((user) => (
                         <option key={user.ID} value={user.ID}>
@@ -162,6 +269,7 @@ const AdminSchedulePage = () => {
               </div>
             </div>
 
+            {/* Day Select */}
             <div>
               <label className="block text-sm font-bold text-gray-600 mb-1">יום</label>
               <div className="relative">
@@ -178,6 +286,7 @@ const AdminSchedulePage = () => {
               </div>
             </div>
 
+            {/* Start Time */}
             <div>
               <label className="block text-sm font-bold text-gray-600 mb-1">התחלה</label>
               <input
@@ -187,6 +296,8 @@ const AdminSchedulePage = () => {
                 onChange={(e) => setFormData({ ...formData, startHour: e.target.value })}
               />
             </div>
+            
+            {/* End Time */}
             <div>
               <label className="block text-sm font-bold text-gray-600 mb-1">סיום</label>
               <input
@@ -209,6 +320,7 @@ const AdminSchedulePage = () => {
           </button>
         </div>
 
+        {/* Existing Shifts List */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="p-4 border-b bg-gray-50">
             <h3 className="font-bold text-gray-700">משמרות קיימות במערכת</h3>
@@ -250,7 +362,7 @@ const AdminSchedulePage = () => {
                         </td>
                         <td className="p-4 text-center">
                           <button
-                            onClick={() => handleDeleteShift(shift.ID)}
+                            onClick={() => handleDeleteRequest(shift.ID)}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="מחק משמרת"
                           >
