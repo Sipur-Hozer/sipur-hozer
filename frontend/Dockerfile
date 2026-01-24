@@ -3,11 +3,10 @@ FROM node:20-alpine AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
 
-# 1. Install standard dependencies from your package.json
+# 1. Install standard dependencies
 RUN npm ci
 
-# 2. FORCE install testing tools (Fixes "jest not found" error)
-# This ensures they exist in the container even if missing from your local package.json
+# 2. FORCE install testing tools
 RUN npm install --save-dev jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node
 
 COPY . .
@@ -19,9 +18,7 @@ COPY . .
 # Stage 3: Tester
 FROM base AS tester
 ENV CI=true
-# Fix: Pass the config explicitly if it's not detected automatically
-#   RUN npx jest --config jest.config.js
-
+CMD ["npm", "test"]
 
 
 # Stage 4: Builder

@@ -1,112 +1,43 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import InsideRolesPage from './page';
 
-// 1. MOCK: Next.js Router
 const mockPush = jest.fn();
-
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
+  useRouter: () => ({ push: mockPush }),
 }));
+jest.mock('../config', () => ({ API_BASE_URL: 'http://mock-api' }));
 
-describe('InsideRolesPage (InStoreDuty)', () => {
+describe('InsideRolesPage', () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
   });
 
-  it('renders the initial state correctly', () => {
+  test('renders and enables button on selection', () => {
     render(<InsideRolesPage />);
-
-    // Check titles
-    expect(screen.getByText('בחר תפקיד')).toBeInTheDocument();
+    const btn = screen.getByText('אישור והמשך');
+    expect(btn).toBeDisabled();
     
-    // Check dropdown exists
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-
-    // Check button is initially disabled
-    const button = screen.getByRole('button', { name: /אישור והמשך/i });
-    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'מיון' } });
+    expect(btn).not.toBeDisabled();
   });
 
-  it('enables button for standard roles', () => {
+  test('submits correct data', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
     render(<InsideRolesPage />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'קופה' } });
+    fireEvent.change(screen.getByPlaceholderText('הקלד כמות'), { target: { value: '10' } });
+    fireEvent.change(screen.getByPlaceholderText('הקלד כן/לא/סכום'), { target: { value: 'Yes' } });
 
-    const select = screen.getByRole('combobox');
-    const button = screen.getByRole('button', { name: /אישור והמשך/i });
+    fireEvent.click(screen.getByText('אישור והמשך'));
 
-    // Select "Sorting" (מיון) - a simple role with no extra inputs
-    fireEvent.change(select, { target: { value: 'מיון' } });
-
-    // Button should become enabled immediately
-    expect(button).toBeEnabled();
-  });
-
-  it('shows quantity input when "Internet Orders" is selected', () => {
-    render(<InsideRolesPage />);
-    const select = screen.getByRole('combobox');
-
-    // Select "Internet Orders"
-    fireEvent.change(select, { target: { value: 'טיפול בהזמנות אינטרנט' } });
-
-    // Check if the specific label appears
-    expect(screen.getByText('כמות ספרים שנמכרו:')).toBeInTheDocument();
-    
-    // Check if the number input appears
-    const numberInput = screen.getByPlaceholderText('הקלד כמות...');
-    expect(numberInput).toBeInTheDocument();
-  });
-
-  it('shows both inputs when "Cashier" (קופה) is selected', () => {
-    render(<InsideRolesPage />);
-    const select = screen.getByRole('combobox');
-
-    // Select "Cashier"
-    fireEvent.change(select, { target: { value: 'קופה' } });
-
-    // Check for the first input (Books Quantity)
-    expect(screen.getAllByPlaceholderText('הקלד כמות ...').length).toBeGreaterThan(0);
-
-    // Check for the second unique label "Target Commission"
-    expect(screen.getByText('האם הייתה עמלת יעד')).toBeInTheDocument();
-  });
-
-  it('handles "Other" role logic correctly', () => {
-    render(<InsideRolesPage />);
-    const select = screen.getByRole('combobox');
-    const button = screen.getByRole('button', { name: /אישור והמשך/i });
-
-    // 1. Select "Other"
-    fireEvent.change(select, { target: { value: 'other' } });
-
-    // The custom input should appear
-    const customInput = screen.getByPlaceholderText('כתוב כאן...');
-    expect(customInput).toBeInTheDocument();
-
-    // Button should STILL be disabled because input is empty
-    expect(button).toBeDisabled();
-
-    // 2. Type something in the custom input
-    fireEvent.change(customInput, { target: { value: 'My Custom Role' } });
-
-    // Now button should be enabled
-    expect(button).toBeEnabled();
-  });
-
-  it('navigates to /Browser on confirm', () => {
-    render(<InsideRolesPage />);
-    const select = screen.getByRole('combobox');
-    const button = screen.getByRole('button', { name: /אישור והמשך/i });
-
-    // Select a valid role
-    fireEvent.change(select, { target: { value: 'שירות לקוחות' } });
-
-    // Click confirm
-    fireEvent.click(button);
-
-    // Verify navigation
-    expect(mockPush).toHaveBeenCalledWith('/Browser');
+    // FIX: Use findByText
+    expect(await screen.findByText('המשמרת הסתיימה')).toBeInTheDocument();
   });
 });

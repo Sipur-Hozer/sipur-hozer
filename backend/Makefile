@@ -3,7 +3,7 @@ BINARY_NAME=server
 
 # Run Go inside a container with persistent volumes for modules and build cache
 DOCKER_RUN=docker run --rm \
-	-v "$(PWD):/app" \
+	-v "$(CURDIR):/app" \
 	-w /app \
 	-v go-modules:/go/pkg/mod \
 	-v go-build-cache:/root/.cache/go-build \

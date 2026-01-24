@@ -1,84 +1,172 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import OutsideRolesPage from './page';
 
-// 1. MOCK: Next.js Router
-const mockPush = jest.fn();
+// --- MOCKS ---
 
+const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
 }));
 
+jest.mock('../config', () => ({
+  API_BASE_URL: 'http://mock-api',
+}));
+
 describe('OutsideRolesPage (OutStoreDuty)', () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
   });
 
-  it('renders the title and initial elements', () => {
+  // --- RENDERING ---
+
+  test('renders dropdown, disabled camera button, and disabled submit button', () => {
     render(<OutsideRolesPage />);
 
     expect(screen.getByText('בחר תפקיד (שטח)')).toBeInTheDocument();
-    expect(screen.getByText('אנא בחר תפקיד מהרשימה:')).toBeInTheDocument();
     
-    // The button should be disabled initially
-    const confirmButton = screen.getByRole('button', { name: /אישור והמשך/i });
-    expect(confirmButton).toBeDisabled();
+    // Check Camera Button (Should be disabled)
+    const cameraBtn = screen.getByText('הוסף תמונה').closest('button');
+    expect(cameraBtn).toBeDisabled();
+
+    // Check Submit Button (Should be disabled initially)
+    const submitBtn = screen.getByText('אישור והמשך');
+    expect(submitBtn).toBeDisabled();
   });
 
-  it('enables the button when a standard role is selected', () => {
+  // --- INTERACTION ---
+
+  test('Enables submit button when a standard role is selected', () => {
     render(<OutsideRolesPage />);
 
-    const select = screen.getByRole('combobox');
-    const confirmButton = screen.getByRole('button', { name: /אישור והמשך/i });
+    // Select "Train Agent" (סוכן רכבת)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'סוכן רכבת' } });
 
-    // Select "Train Agent" (one of the standard options)
-    fireEvent.change(select, { target: { value: 'סוכן רכבת' } });
-
-    // Button should now be enabled
-    expect(confirmButton).toBeEnabled();
+    // Button should enable
+    expect(screen.getByText('אישור והמשך')).not.toBeDisabled();
   });
 
-  it('shows custom input when "Other" is selected', () => {
+  test('Shows custom input when "Other" is selected', () => {
     render(<OutsideRolesPage />);
-
-    const select = screen.getByRole('combobox');
-    
-    // Select "Other"
-    fireEvent.change(select, { target: { value: 'other' } });
-
-    // The input field should appear
-    expect(screen.getByPlaceholderText('כתוב כאן...')).toBeInTheDocument();
-  });
-
-  it('keeps button disabled if "Other" is selected but input is empty', () => {
-    render(<OutsideRolesPage />);
-
-    const select = screen.getByRole('combobox');
-    const confirmButton = screen.getByRole('button', { name: /אישור והמשך/i });
 
     // Select "Other"
-    fireEvent.change(select, { target: { value: 'other' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } });
 
-    // Input is visible but empty -> Button should stay disabled
-    expect(confirmButton).toBeDisabled();
+    // Check Input Appears
+    const customInput = screen.getByPlaceholderText('כתוב כאן...');
+    expect(customInput).toBeInTheDocument();
+
+    // Button should be disabled until typed
+    const submitBtn = screen.getByText('אישור והמשך');
+    expect(submitBtn).toBeDisabled();
+
+    // Type in custom role
+    fireEvent.change(customInput, { target: { value: 'My Custom Job' } });
+    expect(submitBtn).not.toBeDisabled();
   });
 
-  it('navigates to /Browser when valid data is confirmed', () => {
+  // --- SUBMISSION ---
+
+  test('Submits correct data for standard role', async () => {
+    // Mock Success
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
     render(<OutsideRolesPage />);
 
-    const select = screen.getByRole('combobox');
-    const confirmButton = screen.getByRole('button', { name: /אישור והמשך/i });
+    // Select Role
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'יריד' } });
+    
+    // Click Submit
+    fireEvent.click(screen.getByText('אישור והמשך'));
 
-    // Select a valid role
-    fireEvent.change(select, { target: { value: 'יריד' } });
+    // Verify API Payload
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://mock-api/end-shift-outside',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            role: 'יריד',
+            extra: 'דיווח מהשטח', // Important check for this page
+          }),
+        })
+      );
+    });
 
-    // Click confirm
-    fireEvent.click(confirmButton);
+    // Verify Success Modal
+    await waitFor(() => {
+      expect(screen.getByText('הדיווח התקבל')).toBeInTheDocument();
+    });
 
-    // Verify navigation
+    // Close Modal -> Navigate
+    fireEvent.click(screen.getByText('מעולה, תודה!'));
+    expect(mockPush).toHaveBeenCalledWith('/Browser');
+  });
+
+  test('Submits correct data for custom role', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    render(<OutsideRolesPage />);
+
+    // Setup Custom Role
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } });
+    fireEvent.change(screen.getByPlaceholderText('כתוב כאן...'), { target: { value: 'Super Agent' } });
+
+    fireEvent.click(screen.getByText('אישור והמשך'));
+
+    // Verify Payload uses the custom text
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: JSON.stringify({
+            role: 'Super Agent',
+            extra: 'דיווח מהשטח',
+          }),
+        })
+      );
+    });
+  });
+
+  // --- ERROR HANDLING ---
+
+  test('Shows error modal on API failure', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'Database Error' }),
+    });
+
+    render(<OutsideRolesPage />);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'סוכן עמדה' } });
+    fireEvent.click(screen.getByText('אישור והמשך'));
+
+    // Check Error Modal
+    await waitFor(() => {
+      expect(screen.getByText('שגיאה')).toBeInTheDocument();
+      expect(screen.getByText('Database Error')).toBeInTheDocument();
+    });
+
+    // Close -> No Navigation
+    fireEvent.click(screen.getByText('הבנתי, סגור'));
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  // --- NAVIGATION ---
+
+  test('Back button navigates to Browser', () => {
+    render(<OutsideRolesPage />);
+    fireEvent.click(screen.getByText('חזרה'));
     expect(mockPush).toHaveBeenCalledWith('/Browser');
   });
 });
