@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import { API_BASE_URL } from './config';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -17,14 +18,18 @@ const LoginPage = () => {
 
     const router = useRouter();
 
-    const handleLogin = async () => {
+    const passwordRef = useRef<HTMLInputElement>(null);
+    
+    const handleLogin = async (e: React.FormEvent) => {
+        if (e) e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const response = await fetch('http://localhost:8080/login', {
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ phone, password }),
             });
 
@@ -33,7 +38,7 @@ const LoginPage = () => {
             if (response.ok && data.role == "employee") {
                 router.push('/Browser');
             } else if(response.ok && data.role == "admin") {
-                router.push('/Manger');
+                router.push('/Manager');
             }  else {
                 setError(data.message || 'שם משתמש/סיסמא שגויים - נסה שוב');
             } 
@@ -41,6 +46,13 @@ const LoginPage = () => {
             setError('אין תקשורת עם השרת');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); 
+            passwordRef.current?.focus(); 
         }
     };
 
@@ -61,20 +73,23 @@ const LoginPage = () => {
                     />
                 </div>
 
-                <div className="space-y-6 w-full">
-
+            <form onSubmit={handleLogin} className="space-y-6 w-full">
                     <input
                         type="tel"
+                        id = "phoneInput"
                         placeholder="מספר טלפון"
                         className={inputClasses}
                         style={{ backgroundColor: INPUT_BG_COLOR, color: BRAND_GREEN }}
                         value={phone}
+                        onKeyDown={handlePhoneKeyDown}
                         onChange={(e) => setPhone(e.target.value)}
                         dir="rtl"
                     />
 
                     <input
                         type="password"
+                        id = "passwordInput"
+                        ref = {passwordRef}
                         placeholder="סיסמה"
                         className={inputClasses}
                         style={{ backgroundColor: INPUT_BG_COLOR, color: BRAND_GREEN }}
@@ -86,7 +101,7 @@ const LoginPage = () => {
                     {error && <p className="text-red-600 text-center font-bold">{error}</p>}
 
                     <button
-                        onClick={handleLogin}
+                        type="submit"
                         disabled={loading}
                         className="w-full h-16 flex items-center justify-center text-lg font-bold text-white shadow-md rounded-lg transition duration-150 ease-in-out hover:bg-opacity-90 disabled:opacity-50"
                         style={{ backgroundColor: BRAND_GREEN }}
@@ -94,7 +109,7 @@ const LoginPage = () => {
                         {loading ? 'מתחבר...' : 'כניסה'}
                     </button>
 
-                </div>
+                </form>
             </div>
         </div>
     );

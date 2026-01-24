@@ -1,5 +1,5 @@
 "use client";
-
+import { API_BASE_URL } from '../config';
 import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -28,7 +28,7 @@ const CreateUserPage = () => {
     setStatus({ loading: true, message: '', error: false });
 
     try {
-      const res = await fetch('http://localhost:8080/create-user', {
+      const res = await fetch(`${API_BASE_URL}/create-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

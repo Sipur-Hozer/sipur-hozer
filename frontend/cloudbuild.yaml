@@ -1,0 +1,5 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '--build-arg', 'NEXT_PUBLIC_API_URL=${_API_URL}', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/my-repo/frontend:v1', '.' ]
+images:
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/my-repo/frontend:v1'

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '../config';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown } from 'lucide-react'; 
@@ -38,15 +39,55 @@ const InsideRolesPage = () => {
     if (newRole !== 'קופה') setCashDesk('');
   };
 
-  const handleConfirm = () => {
+  // const handleConfirm = () => {
+  //   const dataToSend = {
+  //       role: selectedRole === 'other' ? customRole : selectedRole,
+  //       booksQuantity: selectedRole === 'טיפול בהזמנות אינטרנט' ? booksQuantity : null,
+  //       cashDesk: selectedRole === 'קופה' ? CashDesk : null
+  //   };
+    
+  //   console.log("Sending Data:", dataToSend);
+  //   router.push('/Browser');
+  // };
+
+  const [status, setStatus] = useState({ loading: false, message: '', error: false });
+
+  const handleConfirm = async () => {
+    setStatus({ loading: true, message: 'מעדכן סיום משמרת...', error: false });
+
     const dataToSend = {
         role: selectedRole === 'other' ? customRole : selectedRole,
-        booksQuantity: selectedRole === 'טיפול בהזמנות אינטרנט' ? booksQuantity : null,
+        booksQuantity: (selectedRole === 'טיפול בהזמנות אינטרנט' || selectedRole === 'קופה') ? booksQuantity : null,
         cashDesk: selectedRole === 'קופה' ? CashDesk : null
     };
-    
+
     console.log("Sending Data:", dataToSend);
-    router.push('/Browser');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/end-shift-inside`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(dataToSend),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus({ loading: false, message: 'המשמרת הסתיימה בהצלחה!', error: false });
+        alert("המשמרת הסתיימה בהצלחה!");
+        
+        router.push('/Browser');
+      } else {
+        const errorMsg = data.error || "לא ניתן לסיים משמרת";
+        setStatus({ loading: false, message: errorMsg, error: true });
+        alert("שגיאה: " + errorMsg);
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+      setStatus({ loading: false, message: 'תקלה בתקשורת עם השרת', error: true });
+      alert("תקלה בתקשורת עם השרת");
+    }
   };
 
   return (
