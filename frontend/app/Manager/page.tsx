@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { UserPlus, CalendarDays, Calculator } from 'lucide-react';
+import { UserPlus, CalendarDays, Calculator, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 
@@ -75,7 +75,15 @@ const ManagerPage = () => {
   return (
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex items-center justify-center p-4 relative" dir="rtl">
       
-      <div className="absolute top-4 right-6 text-sm font-large text-gray-500">
+      <button
+        onClick={() => router.push('/')}
+        className="absolute top-6 right-6 flex items-center gap-2 text-[#446F41] font-bold hover:text-green-800 transition-colors z-10"
+      >
+        <ArrowRight size={24} />
+        <span>חזרה</span>
+      </button>
+
+      <div className="absolute top-4 left-6 text-sm font-large text-gray-500">
         פאנל ניהול
       </div>
 

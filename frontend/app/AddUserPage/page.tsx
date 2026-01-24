@@ -53,12 +53,13 @@ const CreateUserPage = () => {
   return (
     <div style={{ backgroundColor: BG_CREAM }} className="min-h-screen flex items-center justify-center p-4 relative" dir="rtl">
       
-      <button 
-        onClick={() => router.back()} 
-        className="absolute top-6 right-6 text-gray-600 hover:text-[#446F41] transition-colors"
-      >
-        <ArrowRight size={28} />
-      </button>
+       <button
+              onClick={() => router.push('/Manager')}
+              className="absolute top-6 right-6 flex items-center gap-2 text-[#446F41] font-bold hover:text-green-800 transition-colors z-10"
+            >
+              <ArrowRight size={24} />
+              <span>חזרה</span>
+        </button>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
