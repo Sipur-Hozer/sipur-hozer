@@ -12,14 +12,26 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-global.URL.createObjectURL = jest.fn(() => 'mock-url');
-global.URL.revokeObjectURL = jest.fn();
-window.alert = jest.fn();
+// Mock Lucide React icons to avoid rendering issues
+jest.mock('lucide-react', () => ({
+  UserPlus: () => <div data-testid="icon-user-plus" />,
+  CalendarDays: () => <div data-testid="icon-calendar" />,
+  Calculator: () => <div data-testid="icon-calculator" />,
+  ArrowRight: () => <div data-testid="icon-arrow-right" />,
+  UserMinus: () => <div data-testid="icon-user-minus" />, // Added purely in case logout uses it
+}));
 
 describe('ManagerPage', () => {
+  
+  // Setup global mocks properly before tests run
+  beforeAll(() => {
+    global.URL.createObjectURL = jest.fn(() => 'mock-url');
+    global.URL.revokeObjectURL = jest.fn();
+    window.alert = jest.fn();
+  });
+
   beforeEach(() => {
-    // IMPORTANT: Restore all mocks to original state before each test
-    jest.restoreAllMocks();
+    // Only clear usage data, don't restore implementations aggressively
     jest.clearAllMocks();
     global.fetch = jest.fn();
   });
@@ -36,37 +48,47 @@ describe('ManagerPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/AddUserPage');
   });
 
-  // --- DOWNLOAD TESTS (New Strategy) ---
+  // --- DOWNLOAD TESTS (Improved Strategy) ---
 
   test('handles "Export Shifts" successfully', async () => {
-    // 1. Mock the API Response
+    // 1. Mock Fetch
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       blob: async () => new Blob(['fake-excel-data'], { type: 'application/xlsx' }),
     });
 
-    // 2. Spy on the 'click' method of ALL anchor elements.
-    // We provide an empty implementation to prevent JSDOM from trying to actually navigate/download.
-    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    // 2. Mock document.createElement to catch the link creation
+    const mockLink = { href: '', download: '', click: jest.fn(), remove: jest.fn() };
+    const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
+        if (tagName === 'a') return mockLink as any;
+        return document.createElement(tagName); // Default behavior for other tags
+    });
+    
+    // 3. Mock appendChild to avoid DOM errors
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
+    jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
 
     render(<ManagerPage />);
     
-    // 3. Trigger the export
+    // 4. Trigger
     fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
     await waitFor(() => {
-      // Verify API was called
+      // Verify Fetch
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('export-shifts'),
-        expect.anything()
+        expect.objectContaining({ method: 'GET' }) // More strict check
       );
       
-      // Verify that the code created a link and clicked it programmatically
-      expect(clickSpy).toHaveBeenCalled();
+      // Verify Link Click - This is the key fix!
+      expect(mockLink.click).toHaveBeenCalled();
       
-      // Verify it tried to create a URL for the blob
+      // Verify URL creation
       expect(global.URL.createObjectURL).toHaveBeenCalled();
     });
+
+    // Cleanup spies for this test
+    createElementSpy.mockRestore();
   });
 
   test('handles "Export Users" successfully', async () => {
@@ -75,7 +97,13 @@ describe('ManagerPage', () => {
       blob: async () => new Blob(['fake-user-data']),
     });
 
-    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const mockLink = { href: '', download: '', click: jest.fn(), remove: jest.fn() };
+    const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
+        if (tagName === 'a') return mockLink as any;
+        return document.createElement(tagName);
+    });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
+    jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
 
     render(<ManagerPage />);
     
@@ -86,15 +114,22 @@ describe('ManagerPage', () => {
         expect.stringContaining('export-users'),
         expect.anything()
       );
-      expect(clickSpy).toHaveBeenCalled();
+      expect(mockLink.click).toHaveBeenCalled();
     });
+
+    createElementSpy.mockRestore();
   });
 
   test('shows alert on download failure', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: false });
+    // Mock a failed response
+    (global.fetch as jest.Mock).mockResolvedValue({ 
+        ok: false,
+        json: async () => ({ error: 'Simulated Server Error' }), // Ensure .json() exists for error parsing
+        status: 500
+    });
     
     render(<ManagerPage />);
-    fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
+    fireEvent.click(screen.getByText('הנפקת קובץ משמרות')); // Or 'דוח סיכום משתמשים' if testing that one
 
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('שגיאה'));
