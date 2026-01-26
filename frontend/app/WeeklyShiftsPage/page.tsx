@@ -53,7 +53,7 @@ const AdminSchedulePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const usersRes = await fetch(`${API_BASE_URL}`);
+        const usersRes = await fetch(`${API_BASE_URL}/users`);
         if (usersRes.ok) {
             const usersData = await usersRes.json();
             if (Array.isArray(usersData)) {
@@ -131,7 +131,7 @@ const AdminSchedulePage = () => {
     if (!pendingDeleteId) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/schedule${pendingDeleteId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/schedule/${pendingDeleteId}`, {
         method: 'DELETE',
       });
 
