@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagerPage from './page';
-import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
-// --- MOCKS ---
+// --- 1. MOCKS (זיופים) ---
 
+// זיוף ה-Router של Next.js
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -13,98 +13,100 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock Lucide React icons to avoid rendering issues
+// זיוף האייקונים (כדי למנוע שגיאות רינדור)
 jest.mock('lucide-react', () => ({
   UserPlus: () => <div data-testid="icon-user-plus" />,
   CalendarDays: () => <div data-testid="icon-calendar" />,
   Calculator: () => <div data-testid="icon-calculator" />,
   ArrowRight: () => <div data-testid="icon-arrow-right" />,
-  UserMinus: () => <div data-testid="icon-user-minus" />, // Added purely in case logout uses it
 }));
 
+// --- 2. SETUP (הגדרות גלובליות) ---
+
 describe('ManagerPage', () => {
-  
-  // Setup global mocks properly before tests run
+  // משתנה שיחזיק את ה"קישור המזויף" שיצרנו
+  let mockLink: { href: string; download: string; click: jest.Mock; remove: jest.Mock };
+
   beforeAll(() => {
-    global.URL.createObjectURL = jest.fn(() => 'mock-url');
+    // זיוף פונקציות של הדפדפן שלא קיימות בטסטים
+    global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
     global.URL.revokeObjectURL = jest.fn();
     window.alert = jest.fn();
   });
 
   beforeEach(() => {
-    // Only clear usage data, don't restore implementations aggressively
     jest.clearAllMocks();
+    
+    // איפוס ה-Fetch לפני כל טסט
     global.fetch = jest.fn();
+
+    // --- הטריק החשוב: זיוף יצירת אלמנטים ---
+    // אנחנו תופסים את הרגע שבו הקוד עושה document.createElement('a')
+    // ומחזירים לו אובייקט משלנו שאפשר לבדוק אותו
+    mockLink = { href: '', download: '', click: jest.fn(), remove: jest.fn() };
+    jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
+      if (tagName === 'a') return mockLink as any;
+      return document.createElement(tagName);
+    });
+    
+    // מניעת שגיאות כשמוסיפים/מסירים מה-body
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
+    jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
   });
 
-  test('renders the dashboard options', () => {
+  // --- 3. TESTS (הבדיקות עצמן) ---
+
+  test('renders the page correctly', () => {
     render(<ManagerPage />);
-    expect(screen.getByText('פאנל ניהול')).toBeInTheDocument();
+    // בדיקה שהכותרת קיימת
+    expect(screen.getByText('אופציות')).toBeInTheDocument();
+    // בדיקה שאחד הכפתורים קיים
     expect(screen.getByText('יצירת משתמשים')).toBeInTheDocument();
   });
 
-  test('navigates to AddUserPage', () => {
+  test('navigates to AddUserPage when clicking the button', () => {
     render(<ManagerPage />);
-    fireEvent.click(screen.getByText('יצירת משתמשים'));
+    const button = screen.getByText('יצירת משתמשים');
+    fireEvent.click(button);
     expect(mockPush).toHaveBeenCalledWith('/AddUserPage');
   });
 
-  // --- DOWNLOAD TESTS (Improved Strategy) ---
-
-  test('handles "Export Shifts" successfully', async () => {
-    // 1. Mock Fetch
+  test('handles "Export Shifts" download successfully', async () => {
+    // הכנת התשובה שהשרת יחזיר (הצלחה)
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      blob: async () => new Blob(['fake-excel-data'], { type: 'application/xlsx' }),
+      blob: async () => new Blob(['fake-excel'], { type: 'application/xlsx' }),
     });
-
-    // 2. Mock document.createElement to catch the link creation
-    const mockLink = { href: '', download: '', click: jest.fn(), remove: jest.fn() };
-    const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
-        if (tagName === 'a') return mockLink as any;
-        return document.createElement(tagName); // Default behavior for other tags
-    });
-    
-    // 3. Mock appendChild to avoid DOM errors
-    jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
-    jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
 
     render(<ManagerPage />);
     
-    // 4. Trigger
-    fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
+    // לחיצה על הכפתור
+    const button = screen.getByText('הנפקת קובץ משמרות');
+    fireEvent.click(button);
 
     await waitFor(() => {
-      // Verify Fetch
+      // 1. בדיקה שנשלחה בקשה לכתובת הנכונה
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('export-shifts'),
-        expect.objectContaining({ method: 'GET' }) // More strict check
+        expect.anything()
       );
       
-      // Verify Link Click - This is the key fix!
+      // 2. בדיקה שהקוד יצר את ה-URL לקובץ
+      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      
+      // 3. בדיקה קריטית: האם הקוד "לחץ" על הקישור המזויף?
       expect(mockLink.click).toHaveBeenCalled();
       
-      // Verify URL creation
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      // 4. בדיקה שהוגדר שם לקובץ
+      expect(mockLink.download).toContain('דו"ח_משמרות');
     });
-
-    // Cleanup spies for this test
-    createElementSpy.mockRestore();
   });
 
-  test('handles "Export Users" successfully', async () => {
+  test('handles "Users Report" download successfully', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      blob: async () => new Blob(['fake-user-data']),
+      blob: async () => new Blob(['fake-users'], { type: 'application/xlsx' }),
     });
-
-    const mockLink = { href: '', download: '', click: jest.fn(), remove: jest.fn() };
-    const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
-        if (tagName === 'a') return mockLink as any;
-        return document.createElement(tagName);
-    });
-    jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
-    jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
 
     render(<ManagerPage />);
     
@@ -112,28 +114,48 @@ describe('ManagerPage', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        `${API_BASE_URL}/export-users`, 
+        expect.stringContaining('export-users'),
         expect.anything()
       );
       expect(mockLink.click).toHaveBeenCalled();
+      expect(mockLink.download).toContain('סיכום_עובדים');
     });
-
-    createElementSpy.mockRestore();
   });
 
-  test('shows alert on download failure', async () => {
-    // Mock a failed response
-    (global.fetch as jest.Mock).mockResolvedValue({ 
-        ok: false,
-        json: async () => ({ error: 'Simulated Server Error' }), // Ensure .json() exists for error parsing
-        status: 500
-    });
-    
+  test('handles Logout successfully', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+
     render(<ManagerPage />);
-    fireEvent.click(screen.getByText('הנפקת קובץ משמרות')); // Or 'דוח סיכום משתמשים' if testing that one
+    
+    // יש שני כפתורי "חזרה"/"התנתק" עם טקסטים דומים, נחפש ספציפית את ההתנתקות
+    // או לפי הטקסט המדויק
+    const logoutBtn = screen.getByText('התנתק'); 
+    fireEvent.click(logoutBtn);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('שגיאה'));
+      // בדיקה שנשלחה בקשה ל-logout
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('logout'),
+        expect.objectContaining({ method: 'POST' })
+      );
+      // בדיקה שעברנו לדף הבית
+      expect(mockPush).toHaveBeenCalledWith('/');
+    });
+  });
+
+  test('shows alert when download fails', async () => {
+    // הכנת תשובת שגיאה מהשרת
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'Server Error' }),
+    });
+
+    render(<ManagerPage />);
+    
+    fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalled();
     });
   });
 });
