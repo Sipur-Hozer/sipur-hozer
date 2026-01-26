@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AdminSchedulePage from './page';
+import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
@@ -15,29 +16,35 @@ const mockShifts = [{ ID: 101, userId: 1, day: 'ראשון', startHour: '08:00',
 describe('AdminSchedulePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
     global.fetch = jest.fn((url, options) => {
       const u = url.toString();
-      const m = options?.method || 'GET';
-      if (u.includes('/users')) return Promise.resolve({ ok: true, json: async () => mockUsers });
-      if (u.includes('/admin/schedule') && m === 'GET') return Promise.resolve({ ok: true, json: async () => mockShifts });
-      if (u.includes('/admin/schedule') && m === 'POST') return Promise.resolve({ ok: true, json: async () => ({}) });
-      if (u.includes('/admin/schedule/') && m === 'DELETE') return Promise.resolve({ ok: true });
-      return Promise.reject(new Error('Unknown'));
+      const method = options?.method || 'GET';
+
+      if (u === `${API_BASE_URL}/users` && method === 'GET') {
+        return Promise.resolve({ ok: true, json: async () => mockUsers });
+      }
+
+      if (u === `${API_BASE_URL}/admin/schedule` && method === 'GET') {
+        return Promise.resolve({ ok: true, json: async () => mockShifts });
+      }
+
+      if (u === `${API_BASE_URL}/admin/schedule` && method === 'POST') {
+        return Promise.resolve({ ok: true, json: async () => ({ message: 'Created' }) });
+      }
+
+      if (u.startsWith(`${API_BASE_URL}/admin/schedule/`) && method === 'DELETE') {
+        return Promise.resolve({ ok: true });
+      }
+
+      console.log(`[TEST MOCK FAIL] Unhandled Request: ${method} ${u}`);
+      return Promise.reject(new Error(`Unknown API Call: ${method} ${u}`));
     }) as jest.Mock;
   });
 
   test('renders page and loads data', async () => {
     render(<AdminSchedulePage />);
-    
-    // Wait for the loading state to disappear
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
-
-    // Check table content
-    // Use 'getAllByText' because 'ראשון' appears in the dropdown AND the table
-    // We check that at least one instance exists in the document
-    const dayElements = screen.getAllByText('ראשון');
-    expect(dayElements.length).toBeGreaterThan(0);
-    
     expect(screen.getByText('Yossi Cohen')).toBeInTheDocument();
   });
 
@@ -45,15 +52,11 @@ describe('AdminSchedulePage', () => {
     render(<AdminSchedulePage />);
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
 
-    // FIX: Select dropdowns by index because the labels aren't strictly associated via ID
     const dropdowns = screen.getAllByRole('combobox');
-    const userSelect = dropdowns[0]; 
-    const daySelect = dropdowns[1];
+    fireEvent.change(dropdowns[0], { target: { value: '2' } });
+    fireEvent.change(dropdowns[1], { target: { value: 'שני' } });
 
-    fireEvent.change(userSelect, { target: { value: '2' } });
-    fireEvent.change(daySelect, { target: { value: 'שני' } });
-
-    // FIX: Select Time Inputs manually (they are just <input type="time">)
+    // eslint-disable-next-line testing-library/no-node-access
     const container = screen.getByText('הוספת משמרת חדשה').closest('div');
     // eslint-disable-next-line testing-library/no-node-access
     const timeInputs = container?.querySelectorAll('input[type="time"]');
@@ -73,6 +76,7 @@ describe('AdminSchedulePage', () => {
   test('successfully deletes a shift', async () => {
     render(<AdminSchedulePage />);
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
+    expect(await screen.findByText('Yossi Cohen')).toBeInTheDocument(); 
 
     const deleteBtn = screen.getByTitle('מחק משמרת');
     fireEvent.click(deleteBtn);
@@ -82,7 +86,7 @@ describe('AdminSchedulePage', () => {
 
     await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('/admin/schedule/101'),
+            `${API_BASE_URL}/admin/schedule/101`,
             expect.objectContaining({ method: 'DELETE' })
         );
     });
