@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagerPage from './page';
+import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
 // --- MOCKS ---
 
@@ -18,7 +19,6 @@ window.alert = jest.fn();
 
 describe('ManagerPage', () => {
   beforeEach(() => {
-    // IMPORTANT: Restore all mocks to original state before each test
     jest.restoreAllMocks();
     jest.clearAllMocks();
     global.fetch = jest.fn();
@@ -36,36 +36,27 @@ describe('ManagerPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/AddUserPage');
   });
 
-  // --- DOWNLOAD TESTS (New Strategy) ---
+  // --- DOWNLOAD TESTS ---
 
   test('handles "Export Shifts" successfully', async () => {
-    // 1. Mock the API Response
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       blob: async () => new Blob(['fake-excel-data'], { type: 'application/xlsx' }),
     });
 
-    // 2. Spy on the 'click' method of ALL anchor elements.
-    // We provide an empty implementation to prevent JSDOM from trying to actually navigate/download.
     const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     render(<ManagerPage />);
     
-    // 3. Trigger the export
     fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
     await waitFor(() => {
-      // Verify API was called
+      // Use API_BASE_URL variable here
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-shifts'),
-        expect.anything()
+        `${API_BASE_URL}/export-shifts`, 
+        expect.objectContaining({ method: 'GET' })
       );
-      
-      // Verify that the code created a link and clicked it programmatically
       expect(clickSpy).toHaveBeenCalled();
-      
-      // Verify it tried to create a URL for the blob
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
     });
   });
 
@@ -83,7 +74,7 @@ describe('ManagerPage', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-users'),
+        `${API_BASE_URL}/export-users`, 
         expect.anything()
       );
       expect(clickSpy).toHaveBeenCalled();

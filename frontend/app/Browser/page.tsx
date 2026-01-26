@@ -18,7 +18,7 @@ const IntermediatePage = () => {
 
   // Helper function to check shift status to avoid code duplication
   const checkShiftStatus = async () => {
-    const response = await fetch(`${API_URL}/check-active-shift`, {
+    const response = await fetch(`${API_BASE_URL}/check-active-shift`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', 
