@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagerPage from './page';
+import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
 // --- MOCKS ---
 
@@ -111,7 +112,7 @@ describe('ManagerPage', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-users'),
+        `${API_BASE_URL}/export-users`, 
         expect.anything()
       );
       expect(mockLink.click).toHaveBeenCalled();
