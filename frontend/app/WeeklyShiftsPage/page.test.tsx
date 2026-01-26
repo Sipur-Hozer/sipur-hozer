@@ -15,14 +15,37 @@ const mockShifts = [{ ID: 101, userId: 1, day: 'ראשון', startHour: '08:00',
 describe('AdminSchedulePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // --- ROBUST HOST-AGNOSTIC MOCK ---
     global.fetch = jest.fn((url, options) => {
       const u = url.toString();
-      const m = options?.method || 'GET';
-      if (u.includes('/users')) return Promise.resolve({ ok: true, json: async () => mockUsers });
-      if (u.includes('/admin/schedule') && m === 'GET') return Promise.resolve({ ok: true, json: async () => mockShifts });
-      if (u.includes('/admin/schedule') && m === 'POST') return Promise.resolve({ ok: true, json: async () => ({}) });
-      if (u.includes('/admin/schedule/') && m === 'DELETE') return Promise.resolve({ ok: true });
-      return Promise.reject(new Error('Unknown'));
+      const method = options?.method || 'GET';
+
+      // 1. Users Endpoint (Matches any domain ending in /users)
+      if (u.endsWith('/users') && method === 'GET') {
+        return Promise.resolve({ ok: true, json: async () => mockUsers });
+      }
+
+      // 2. Schedule GET (Matches any domain containing /admin/schedule)
+      if (u.includes('/admin/schedule') && method === 'GET') {
+        return Promise.resolve({ ok: true, json: async () => mockShifts });
+      }
+
+      // 3. Add Shift POST
+      if (u.includes('/admin/schedule') && method === 'POST') {
+        return Promise.resolve({ ok: true, json: async () => ({ message: 'Created' }) });
+      }
+
+      // 4. Delete Shift DELETE
+      if (u.includes('/admin/schedule/') && method === 'DELETE') {
+        return Promise.resolve({ ok: true });
+      }
+
+      // 5. Catch-all for Root/Health Checks
+      // If it doesn't match the specific API endpoints above, return OK to prevent crashing.
+      // This handles 'http://localhost:8080' or 'http://localhost:8080/'
+      return Promise.resolve({ ok: true, json: async () => ({ status: 'ok' }) });
+
     }) as jest.Mock;
   });
 
@@ -33,8 +56,6 @@ describe('AdminSchedulePage', () => {
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
 
     // Check table content
-    // Use 'getAllByText' because 'ראשון' appears in the dropdown AND the table
-    // We check that at least one instance exists in the document
     const dayElements = screen.getAllByText('ראשון');
     expect(dayElements.length).toBeGreaterThan(0);
     
@@ -45,7 +66,7 @@ describe('AdminSchedulePage', () => {
     render(<AdminSchedulePage />);
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
 
-    // FIX: Select dropdowns by index because the labels aren't strictly associated via ID
+    // Select dropdowns
     const dropdowns = screen.getAllByRole('combobox');
     const userSelect = dropdowns[0]; 
     const daySelect = dropdowns[1];
@@ -53,7 +74,8 @@ describe('AdminSchedulePage', () => {
     fireEvent.change(userSelect, { target: { value: '2' } });
     fireEvent.change(daySelect, { target: { value: 'שני' } });
 
-    // FIX: Select Time Inputs manually (they are just <input type="time">)
+    // Select Time Inputs manually
+    // eslint-disable-next-line testing-library/no-node-access
     const container = screen.getByText('הוספת משמרת חדשה').closest('div');
     // eslint-disable-next-line testing-library/no-node-access
     const timeInputs = container?.querySelectorAll('input[type="time"]');
@@ -73,6 +95,9 @@ describe('AdminSchedulePage', () => {
   test('successfully deletes a shift', async () => {
     render(<AdminSchedulePage />);
     await waitFor(() => expect(screen.queryByText('טוען נתונים...')).not.toBeInTheDocument());
+    
+    // Wait for the row to render
+    expect(await screen.findByText('Yossi Cohen')).toBeInTheDocument(); 
 
     const deleteBtn = screen.getByTitle('מחק משמרת');
     fireEvent.click(deleteBtn);

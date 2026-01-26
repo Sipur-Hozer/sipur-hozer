@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { Trash2, Plus, Calendar, User, ArrowRight, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const BRAND_GREEN = '#446F41';
 const BG_CREAM = '#F3F6EB';
@@ -52,7 +53,7 @@ const AdminSchedulePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const usersRes = await fetch('http://localhost:8080/users');
+        const usersRes = await fetch(`${API_BASE_URL}/users`);
         if (usersRes.ok) {
             const usersData = await usersRes.json();
             if (Array.isArray(usersData)) {
@@ -60,7 +61,7 @@ const AdminSchedulePage = () => {
             }
         }
 
-        const shiftsRes = await fetch('http://localhost:8080/admin/schedule');
+        const shiftsRes = await fetch(`${API_BASE_URL}/admin/schedule`);
         if (shiftsRes.ok) {
             const shiftsData = await shiftsRes.json();
             if (Array.isArray(shiftsData)) {
@@ -91,7 +92,7 @@ const AdminSchedulePage = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:8080/admin/schedule', {
+      const res = await fetch(`${API_BASE_URL}/admin/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,7 +105,7 @@ const AdminSchedulePage = () => {
 
       if (res.ok) {
         // Refresh shift list
-        const updatedShiftsRes = await fetch('http://localhost:8080/admin/schedule');
+        const updatedShiftsRes = await fetch(`${API_BASE_URL}/admin/schedule`);
         const updatedShifts = await updatedShiftsRes.json();
         setShifts(updatedShifts);
         
@@ -130,7 +131,7 @@ const AdminSchedulePage = () => {
     if (!pendingDeleteId) return;
 
     try {
-      const res = await fetch(`http://localhost:8080/admin/schedule/${pendingDeleteId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/schedule/${pendingDeleteId}`, {
         method: 'DELETE',
       });
 

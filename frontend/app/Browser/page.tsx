@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, LogIn, LogOut, UserMinus, AlertCircle } from 'lucide-react'; 
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"; 
+import { API_BASE_URL } from '../config'; 
 
 const IntermediatePage = () => {
   const router = useRouter();
@@ -17,7 +16,7 @@ const IntermediatePage = () => {
 
   // Helper function to check shift status to avoid code duplication
   const checkShiftStatus = async () => {
-    const response = await fetch(`${API_URL}/check-active-shift`, {
+    const response = await fetch(`${API_BASE_URL}/check-active-shift`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', 
