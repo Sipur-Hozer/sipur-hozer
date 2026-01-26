@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, LogIn, LogOut, UserMinus, AlertCircle } from 'lucide-react'; 
-import { API_BASE_URL } from '../config'; 
+import { API_BASE_URL } from '../config';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"; 
 
 const IntermediatePage = () => {
   const router = useRouter();
@@ -70,6 +72,20 @@ const IntermediatePage = () => {
       setModalMessage("אירעה שגיאה בבדיקת נתוני המשמרת. אנא נסה שנית");
       setIsError(true);
       setShowModal(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include', 
+      });
+      
+      router.push('/'); 
+    } catch (error) {
+      console.error('Logout failed:', error);
+      router.push('/');
     }
   };
 
@@ -144,7 +160,9 @@ const IntermediatePage = () => {
         </div>
         
         {/* Logout Button */}
-        <Link href="/" 
+       <button 
+            onClick={handleLogout} 
+            type="button"
             className="flex flex-col items-center justify-center 
                        w-64 h-64 p-8 
                        rounded-2xl shadow-xl transition duration-300 ease-in-out 
@@ -159,7 +177,7 @@ const IntermediatePage = () => {
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               חזרה למסך הכניסה
             </p>
-        </Link>
+        </button>
 
          {/* My Shifts Button */}
          <Link href="/ExistingShiftsPage" 
