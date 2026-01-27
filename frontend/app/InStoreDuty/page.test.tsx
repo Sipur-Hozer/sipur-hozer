@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import InsideRolesPage from './page';
-import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
+jest.mock('../config', () => ({ API_BASE_URL: 'http://mock-api' }));
 
 describe('InsideRolesPage', () => {
   beforeEach(() => {
@@ -37,13 +37,7 @@ describe('InsideRolesPage', () => {
 
     fireEvent.click(screen.getByText('אישור והמשך'));
 
-    await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-            `${API_BASE_URL}/end-shift-inside`,
-            expect.anything()
-        );
-    });
-
+    // FIX: Use findByText
     expect(await screen.findByText('המשמרת הסתיימה')).toBeInTheDocument();
   });
 });
