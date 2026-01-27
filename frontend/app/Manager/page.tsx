@@ -83,10 +83,6 @@ const ManagerPage = () => {
         <span>חזרה</span>
       </button>
 
-      <div className="absolute top-4 left-6 text-sm font-large text-gray-500">
-        פאנל ניהול
-      </div>
-
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
         <div className="text-center mb-8">
