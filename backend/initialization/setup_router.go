@@ -23,6 +23,15 @@ func SetupRouter(db domain.Registry) *gin.Engine {
 	r := gin.Default()
 
 	store := cookie.NewStore([]byte("secret_key_for_session_12345"))
+
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   int(12 * time.Hour.Seconds()),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+	})
+
 	r.Use(sessions.Sessions("mysession", store))
 
 	r.Use(cors.New(cors.Config{
