@@ -3,7 +3,7 @@
 ## 📚 About Sipur Hozer
 **Sipur Hozer** is a second-hand bookstore chain with 20 branches across Israel that employs individuals with employment barriers. The organization emphasizes professional and social development for its employees.
 
-Currently, employees report their work hours and job roles on two separate, disconnected platforms. This project aims to bridge that gap by developing a unified, accessible mobile application that handles both time tracking and role reporting.
+Currently, employees report their work hours and job roles on two separate, disconnected platforms. This project aims to bridge that gap by developing a unified, accessible mobile-first application that handles both time tracking and role reporting.
 
 ### Key Objectives
 - **Unification:** Combine entry/exit time recording and job role logging into one streamlined app.
@@ -27,14 +27,13 @@ The application is currently deployed and available for use. You can access the 
 ### For Employees
 - **Unified Login:** Simple authentication via phone number and password.
 - **Shift Tracking:** Easy Clock-in/Clock-out interface.
-- **Future Shift Table:** A clear table of upcoming shifts 
 - **Location Awareness:** Ability to report shifts inside the store or outside.
 - **Role Reporting:** Mandatory selection of specific job roles performed during the shift.
 - **Accessibility:** User interface optimized for ease of use and accessibility.
 
 ### For Managers
 - **Dashboard:** Manage multiple store locations and user roles.
-- **Shift Assignment:** Assign shifts to employees with the ability to edit the scheduled shifts.
+- **Shift Verification:** Review, approve, or reject submitted shifts.
 - **Reports:** Export detailed reports for monthly salary and reward calculations.
 - **User Management:** Add employees and assign permissions.
 
@@ -54,8 +53,8 @@ This project is built using a modern, scalable architecture designed for high pe
 - *Chosen for server-side rendering capabilities, performance, and modern mobile-first UI development.*
 
 ### Database
-- **Database:** PostgreSQL/SQLite
-- *Currently, the system supports both local storage and cloud storage via Supabase.*
+- **Database:** PostgreSQL
+- *Chosen for ACID compliance and strong SQL capabilities to ensure data integrity for financial/reward calculations.*
 
 ### Infrastructure & DevOps
 - **Containerization:** Docker & Docker Compose
@@ -81,7 +80,7 @@ Follow these instructions to run the project on your local machine for developme
 The entire workflow (running, testing, and linting) is containerized. You do **not** need Go, Node.js, or other language dependencies installed on your host machine.
 
 You only need:
-1. **Docker & Docker Composer** (Essential)
+1. **Docker & Docker Compose** (Essential)
 2. **Make** (Pre-installed on Linux/macOS; Windows users may need WSL or Git Bash)
 
 ### 🚀 Running the Application

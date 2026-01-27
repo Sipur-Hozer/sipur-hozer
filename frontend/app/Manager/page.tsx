@@ -3,7 +3,6 @@
 import React from 'react';
 import { UserPlus, CalendarDays, Calculator, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { API_BASE_URL } from '../config';
 
 
 const BRAND_GREEN = '#446F41';
@@ -18,7 +17,7 @@ const ManagerPage = () => {
 
   const handleDownloadExcel = async () => {
     try {
-      const response = await fetch(`${ API_BASE_URL }/export-shifts`, {
+      const response = await fetch('http://localhost:8080/export-shifts', {
         method: 'GET',
         credentials: 'include', 
       });
@@ -48,7 +47,7 @@ const ManagerPage = () => {
 
   const handleDownloadUsersExcel = async () => {
     try {
-      const response = await fetch(`${ API_BASE_URL }/export-users`, {
+      const response = await fetch('http://localhost:8080/export-users', {
         method: 'GET',
         credentials: 'include', 
       });
@@ -83,6 +82,10 @@ const ManagerPage = () => {
         <ArrowRight size={24} />
         <span>חזרה</span>
       </button>
+
+      <div className="absolute top-4 left-6 text-sm font-large text-gray-500">
+        פאנל ניהול
+      </div>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
