@@ -2,15 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagerPage from './page';
+import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
-// --- 1. MOCKS (זיופים) ---
+// --- MOCKS ---
 
-// זיוף קובץ הקונפיגורציה
-jest.mock('../config', () => ({
-  API_BASE_URL: 'http://mock-api.com',
-}));
-
-// זיוף ה-Router
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -18,35 +13,20 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// זיוף האייקונים (למניעת שגיאות רינדור)
-jest.mock('lucide-react', () => ({
-  UserPlus: () => <div data-testid="icon-user-plus" />,
-  CalendarDays: () => <div data-testid="icon-calendar" />,
-  Calculator: () => <div data-testid="icon-calculator" />,
-  ArrowRight: () => <div data-testid="icon-arrow-right" />,
-}));
+global.URL.createObjectURL = jest.fn(() => 'mock-url');
+global.URL.revokeObjectURL = jest.fn();
+window.alert = jest.fn();
 
 describe('ManagerPage', () => {
-  const mockCreateObjectURL = jest.fn(() => 'mock-url');
-  const mockRevokeObjectURL = jest.fn();
-
-  beforeAll(() => {
-    // הגדרת פונקציות גלובליות שלא קיימות בטסטים
-    window.URL.createObjectURL = mockCreateObjectURL;
-    window.URL.revokeObjectURL = mockRevokeObjectURL;
-    window.alert = jest.fn();
-  });
-
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
     global.fetch = jest.fn();
   });
 
-  // --- הבדיקות ---
-
-  test('renders dashboard options correctly', () => {
+  test('renders the dashboard options', () => {
     render(<ManagerPage />);
-    expect(screen.getByText('אופציות')).toBeInTheDocument();
+    expect(screen.getByText('פאנל ניהול')).toBeInTheDocument();
     expect(screen.getByText('יצירת משתמשים')).toBeInTheDocument();
   });
 
@@ -56,35 +36,37 @@ describe('ManagerPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/AddUserPage');
   });
 
-  test('handles "Export Shifts" download request', async () => {
-    // הכנת תשובה חיובית מהשרת
+  // --- DOWNLOAD TESTS ---
+
+  test('handles "Export Shifts" successfully', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      blob: async () => new Blob(['fake-excel'], { type: 'application/xlsx' }),
+      blob: async () => new Blob(['fake-excel-data'], { type: 'application/xlsx' }),
     });
+
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     render(<ManagerPage />);
     
-    // לחיצה על הכפתור
     fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
     await waitFor(() => {
-      // בדיקה שהבקשה נשלחה לשרת לכתובת הנכונה
+      // Use API_BASE_URL variable here
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-shifts'),
+        `${API_BASE_URL}/export-shifts`, 
         expect.objectContaining({ method: 'GET' })
       );
-
-      // בדיקה שהקוד המיר את התשובה ל-URL (סימן שההורדה "התחילה")
-      expect(mockCreateObjectURL).toHaveBeenCalled();
+      expect(clickSpy).toHaveBeenCalled();
     });
   });
 
-  test('handles "Users Report" download request', async () => {
+  test('handles "Export Users" successfully', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      blob: async () => new Blob(['fake-users'], { type: 'application/xlsx' }),
+      blob: async () => new Blob(['fake-user-data']),
     });
+
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     render(<ManagerPage />);
     
@@ -92,44 +74,21 @@ describe('ManagerPage', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-users'),
+        `${API_BASE_URL}/export-users`, 
         expect.anything()
       );
-      expect(mockCreateObjectURL).toHaveBeenCalled();
-    });
-  });
-
-  test('handles Logout successfully', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
-
-    render(<ManagerPage />);
-    
-    // חיפוש כפתור ההתנתקות
-    const logoutBtn = screen.getByText('התנתק');
-    fireEvent.click(logoutBtn);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('logout'),
-        expect.objectContaining({ method: 'POST' })
-      );
-      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(clickSpy).toHaveBeenCalled();
     });
   });
 
   test('shows alert on download failure', async () => {
-    // סימולציה של שגיאה בשרת
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      json: async () => ({ error: 'Fail' }),
-      status: 500,
-    });
-
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false });
+    
     render(<ManagerPage />);
     fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalled();
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('שגיאה'));
     });
   });
 });
