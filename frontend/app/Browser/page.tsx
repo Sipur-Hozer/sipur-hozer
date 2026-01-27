@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, LogIn, LogOut, UserMinus, AlertCircle } from 'lucide-react'; 
+import { API_BASE_URL } from '../config'; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"; 
 

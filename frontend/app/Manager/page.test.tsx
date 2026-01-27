@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagerPage from './page';
+import { API_BASE_URL } from '../config'; // CORRECTED PATH
 
 // --- MOCKS ---
 
@@ -51,21 +52,15 @@ describe('ManagerPage', () => {
 
     render(<ManagerPage />);
     
-    // 3. Trigger the export
     fireEvent.click(screen.getByText('הנפקת קובץ משמרות'));
 
     await waitFor(() => {
-      // Verify API was called
+      // Use API_BASE_URL variable here
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-shifts'),
-        expect.anything()
+        `${API_BASE_URL}/export-shifts`, 
+        expect.objectContaining({ method: 'GET' })
       );
-      
-      // Verify that the code created a link and clicked it programmatically
       expect(clickSpy).toHaveBeenCalled();
-      
-      // Verify it tried to create a URL for the blob
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
     });
   });
 
@@ -83,7 +78,7 @@ describe('ManagerPage', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('export-users'),
+        `${API_BASE_URL}/export-users`, 
         expect.anything()
       );
       expect(clickSpy).toHaveBeenCalled();

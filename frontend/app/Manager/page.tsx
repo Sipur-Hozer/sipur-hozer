@@ -83,14 +83,10 @@ const ManagerPage = () => {
         <span>חזרה</span>
       </button>
 
-      <div className="absolute top-4 left-6 text-sm font-large text-gray-500">
-        פאנל ניהול
-      </div>
-
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">אופציות</h1>
+          <h1 className="text-2xl font-bold text-gray-800">פאנל ניהול</h1>
         </div>
 
         <div className="space-y-4">
