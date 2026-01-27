@@ -3,6 +3,7 @@
 import React from 'react';
 import { UserPlus, CalendarDays, Calculator, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '../config';
 
 
 const BRAND_GREEN = '#446F41';
@@ -15,9 +16,21 @@ const BG_CREAM = '#F3F6EB';
 const ManagerPage = () => {
   const router = useRouter();
 
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:8080/logout', { 
+        method: 'POST',
+        credentials: 'include', 
+      });
+      router.push('/');
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
+
   const handleDownloadExcel = async () => {
     try {
-      const response = await fetch('http://localhost:8080/export-shifts', {
+      const response = await fetch(`${ API_BASE_URL }/export-shifts`, {
         method: 'GET',
         credentials: 'include', 
       });
@@ -47,7 +60,7 @@ const ManagerPage = () => {
 
   const handleDownloadUsersExcel = async () => {
     try {
-      const response = await fetch('http://localhost:8080/export-users', {
+      const response = await fetch(`${ API_BASE_URL }/export-users`, {
         method: 'GET',
         credentials: 'include', 
       });
@@ -82,10 +95,6 @@ const ManagerPage = () => {
         <ArrowRight size={24} />
         <span>חזרה</span>
       </button>
-
-      <div className="absolute top-4 left-6 text-sm font-large text-gray-500">
-        פאנל ניהול
-      </div>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
@@ -140,6 +149,14 @@ const ManagerPage = () => {
               <span className="text-xs bg-gray-200 px-2 py-1 rounded">בקרוב</span>
               <Calculator size={28} />
             </div>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="absolute top-6 left-6 flex items-center gap-2 text-red-600 font-bold hover:text-red-800 transition-colors z-10"
+          >
+            <span>התנתק</span>
+            <ArrowRight size={24} className="rotate-180" />
           </button>
 
         </div>
